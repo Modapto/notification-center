@@ -6,7 +6,7 @@ Notification center is responsible for notifying users in MODAPTO regarding even
 
 Notification Center is connected with User Inteface, Production Knowledge Base and Message Bus to facilitate such operations.
 
-It is based on Java Spring Boot framework utilizing Java 21.
+It is based on Java Spring Boot framework utilizing Java 21. At the moment all endpoints require no authentication - JWT tokens / CSRF token.
 
 ## Table of Contents
 
