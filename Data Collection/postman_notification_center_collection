@@ -1,0 +1,423 @@
+{
+	"info": {
+		"_postman_id": "bbb8adcd-4f7d-4254-b027-c0ece47494a1",
+		"name": "Notification Center Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "13330029"
+	},
+	"item": [
+		{
+			"name": "Notification Center",
+			"item": [
+				{
+					"name": "Events",
+					"item": [
+						{
+							"name": "GET All Events",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8091/api/events",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"events"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Event Mappings",
+					"item": [
+						{
+							"name": "GET All Event Mappings",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8091/api/events/mappings",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"events",
+										"mappings"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Create Event Mapping",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"productionModule\": \"Conveyor\",\r\n    \"smartService\": \"Self-Awareness\",\r\n    \"eventType\": \"Malfunction\",\r\n    \"userRoles\": [\"OPERATOR\", \"VIRTUAL_COMMISSIONING_ENGINEER\"]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8091/api/events/mappings/create",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"events",
+										"mappings",
+										"create"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Notifications",
+					"item": [
+						{
+							"name": "GET All Notifications",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8091/api/notifications",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"notifications"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET All Notification Per User",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8091/api/notifications/user/{userId}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"notifications",
+										"user",
+										"{userId}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET All Unread Notification Per User",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8091/api/notifications/user/{userId}/unread",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"notifications",
+										"user",
+										"{userId}",
+										"unread"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET Notification by ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8091/api/notifications/{id}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"notifications",
+										"{id}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Assignments",
+					"item": [
+						{
+							"name": "GET an Assignment",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8091/api/assignments/{assignmentId}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"assignments",
+										"{assignmentId}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET All Assignments",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8091/api/assignments",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"assignments"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "0",
+											"disabled": true
+										},
+										{
+											"key": "size",
+											"value": "10",
+											"disabled": true
+										},
+										{
+											"key": "sortAttribute",
+											"value": "targetUserId",
+											"disabled": true
+										},
+										{
+											"key": "isAscending",
+											"value": "true",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GET All Assignments  - User - filtered by User ID and/or Status",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8091/api/assignments/user/{userId}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"assignments",
+										"user",
+										"{userId}"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "OPEN",
+											"disabled": true
+										},
+										{
+											"key": "type",
+											"value": "requested",
+											"disabled": true
+										},
+										{
+											"key": "page",
+											"value": "0",
+											"disabled": true
+										},
+										{
+											"key": "size",
+											"value": "1",
+											"disabled": true
+										},
+										{
+											"key": "sortAttribute",
+											"value": "timestamp",
+											"disabled": true
+										},
+										{
+											"key": "isAscending",
+											"value": "true",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "POST Create New Assignment",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI0N2V0NUZfRS1wSnpMNkhNSjhhcTNUa2I4OEpScUpzcTMyZjJwUWNzWlFrIn0.eyJleHAiOjE3MzA0NTc1NDksImlhdCI6MTczMDQ1NTc0OSwianRpIjoiNzViMjFlZDYtZjI1YS00MDNmLWEyYzktYjA5MWUxMmI3MWEwIiwiaXNzIjoiaHR0cDovLzEwLjE1MS42NC4xMzY6OTA4MC9yZWFsbXMvbW9kYXB0by1kZXYiLCJhdWQiOiJyZWFsbS1tYW5hZ2VtZW50Iiwic3ViIjoiZTVkYjY4Y2YtZWYzOC00YTY0LWJiMzctNDg2OTNkZWRiZmI3IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibW9kYXB0byIsInNlc3Npb25fc3RhdGUiOiI4MGU2NDllMC02MWFhLTQ5NGUtODcwMC02MjY0MTA0ZDE5OTQiLCJhY3IiOiIxIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlVTRVIiXX0sInJlc291cmNlX2FjY2VzcyI6eyJyZWFsbS1tYW5hZ2VtZW50Ijp7InJvbGVzIjpbIm1hbmFnZS11c2VycyJdfSwibW9kYXB0byI6eyJyb2xlcyI6WyJQTEFOVF9NQU5BR0VSIiwiU0hPUF9GTE9PUl9NQU5BR0VSIiwiSU5OT1ZBVElPTl9FTkdJTkVFUiIsIk1BSU5URU5BTkNFX0VOR0lORUVSIiwiT1BFUkFUT1IiLCJQUk9EVUNUSU9OX1NDSEVEVUxJTkdfVEVBTV9NRU1CRVIiLCJURUNITklDSUFOIl19fSwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBhdHRyaWJ1dGVzIG1vZGFwdG8gZW1haWwiLCJzaWQiOiI4MGU2NDllMC02MWFhLTQ5NGUtODcwMC02MjY0MTA0ZDE5OTQiLCJwaWxvdCI6IlNFVyIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhZGRyZXNzIjp7fSwicGlsb3Rfcm9sZSI6IlRFQ0hOSUNJQU4iLCJwaWxvdF90eXBlIjoiVVNFUiIsIm5hbWUiOiJTRVcgVEVTVCIsInByZWZlcnJlZF91c2VybmFtZSI6InNld191c2VyIiwiZ2l2ZW5fbmFtZSI6IlNFVyIsImZhbWlseV9uYW1lIjoiVEVTVCIsImVtYWlsIjoic2V3QHRlc3QuY29tIn0.3MIaL2iKOXGyTiyReFdLoqhPctSauqJGEu9QEHBTUHKIcJD5MzR-Fi_LoQ1qc_8SdgpbLyNgf0z7ciWtM8d8x_Q-RjAplqRlwa2OUghElT2StYSPF-ou80oiK1Ut7hC6DJnl3HyGZ_WazFIUGfd4h-iKtYgoauDaBnTMe5uEqK6IfXauA_Xy1ZBfTNfDtgf4Zc4L6wizFxd1RIq2ndL2uGgLGIYXS8qiIWpgSUvEODyTvxejYZfsbSsZr1V5_nhX4MDKmH1pleyIQLM1eBemrvkQHLH3JMHLwdYvc_Lnbe7sy_6ZiNUfghCcDqP-yMcebBx3BREwNY3TH6l_Q1uTug",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"targetUserId\": \"{userId}\",\r\n    \"description\": \"Maintenance action on Prod. Module\",\r\n    \"productionModule\": \"TestModule\",\r\n    \"priority\": \"MEDIUM\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8091/api/assignments/create",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"assignments",
+										"create"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PUT Update Assignment",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"status\": \"ACCEPTED\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8091/api/assignments/update/{userId}",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"assignments",
+										"update",
+										"{userId}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PUT Add Comment to Assignment",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"targetUserComment\": \"Valves (2) Ok\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://localhost:8091/api/assignments/update/{userId}/comments",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8091",
+									"path": [
+										"api",
+										"assignments",
+										"update",
+										"{userId}",
+										"comments"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}

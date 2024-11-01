@@ -1,0 +1,47 @@
+{"properties": [
+  {
+    "name": "spring.kafka.topic.name",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.kafka.topic.name'"
+  },
+  {
+    "name": "environment.name",
+    "type": "java.lang.String",
+    "description": "A description for 'environment.name'"
+  },
+  {
+    "name": "spring.elasticsearch.rest.index-settings.number_of_replicas",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.elasticsearch.rest.index-settings.number_of_replicas'"
+  },
+  {
+    "name": "spring.thread-executor",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.thread-executor'"
+  },
+  {
+    "name": "keycloak.token-uri",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.token-uri'"
+  },
+  {
+    "name": "keycloak.client.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.client.secret'"
+  },
+  {
+    "name": "keycloak.client",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.client'"
+  },
+  {
+    "name": "user.manager.component.url",
+    "type": "java.lang.String",
+    "description": "A description for 'user.manager.component.url'"
+  },
+  {
+    "name": "test.topic",
+    "type": "java.lang.String",
+    "description": "A description for 'test.topic'"
+  }
+]}
