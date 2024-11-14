@@ -55,13 +55,13 @@ public class SecurityConfig {
                 .cors(corsCustomizer -> corsCustomizer.configurationSource(corsConfigurationSource()))
                 // Configure CSRF Token
                 .csrf(csrf -> csrf.csrfTokenRequestHandler(requestHandler)
-                        .ignoringRequestMatchers("/api/events/**", "/api/notifications/**", "/api/assignments/**") // For now ignore all requests under api/notifications
+                        .ignoringRequestMatchers("/api/events/**", "/api/notifications/**", "/api/assignments/**", "/api/notification-center/**") // For now ignore all requests under api/notifications
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .exceptionHandling(exc -> exc.authenticationEntryPoint(entryPoint))
                 // HTTP Requests authorization properties on URLs
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
-                        .anyRequest().permitAll()) // Will be changed in the integration phase
+                        .anyRequest().permitAll()) // Will be changed in the integration phase - permit "/api/notification-center/**"
                 // JWT Authentication Configuration
                 .oauth2ResourceServer(oauth2ResourceServerCustomizer -> oauth2ResourceServerCustomizer
                         .jwt(jwtCustomizer -> jwtCustomizer.jwtAuthenticationConverter(jwtAuthConverter)));
@@ -100,5 +100,4 @@ public class SecurityConfig {
     public JwtDecoder jwtDecoder() {
         return JwtDecoders.fromIssuerLocation(issuerUri);
     }
-
 }
