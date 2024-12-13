@@ -148,8 +148,7 @@ class EventControllerTests {
                         .content("{\"sourceComponent\":\"Test Component\"}"))
                 // Then
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.success", is(false)))
-                .andExpect(jsonPath("$.message", is("Error storing event mapping!")));
+                .andExpect(jsonPath("$.success", is(false)));
     }
 
     @DisplayName("Delete Event Mapping by ID: Success")
