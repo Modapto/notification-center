@@ -1,8 +1,21 @@
 package gr.atc.modapto.service;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+
+import org.modelmapper.MappingException;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import gr.atc.modapto.dto.AssignmentCommentDto;
 import gr.atc.modapto.dto.AssignmentDto;
 import gr.atc.modapto.dto.NotificationDto;
@@ -10,22 +23,12 @@ import gr.atc.modapto.enums.AssignmentStatus;
 import gr.atc.modapto.enums.AssignmentType;
 import gr.atc.modapto.enums.NotificationStatus;
 import gr.atc.modapto.enums.NotificationType;
+import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
+import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.model.Assignment;
 import gr.atc.modapto.repository.AssignmentRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.MappingException;
-import org.modelmapper.ModelMapper;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
-import static gr.atc.modapto.exception.CustomExceptions.*;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @AllArgsConstructor
@@ -243,5 +246,23 @@ public class AssignmentService implements IAssignmentService{
                 log.error("Error processing Notification Dto to JSON - Error: {}", e.getMessage());
             }
         });
+    }
+
+    /**
+     * Delete an Assignment in DB by ID
+     * 
+     * @param assignmentId : ID of assignment
+     * @return True on Success, False on Error
+     */
+    @Override
+    public boolean deleteAssignmentById(String assignmentId) {
+        // Try to locate if assignment exists
+        Optional<Assignment> existingAssignment = assignmentRepository.findById(assignmentId);
+        if (existingAssignment.isEmpty())
+            throw new DataNotFoundException("Assignment with id: " + assignmentId + " not found in DB");
+
+        // Delete the assignment
+        assignmentRepository.deleteById(assignmentId);
+        return true;
     }
 }

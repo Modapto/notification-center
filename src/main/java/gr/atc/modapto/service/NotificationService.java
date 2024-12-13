@@ -225,6 +225,11 @@ public class NotificationService implements INotificationService {
         return userIds;
     }
 
+    /**
+     * Generate a JWT Token to access Keycloak resources
+     *
+     * @return Token
+     */
     public String retrieveComponentJwtToken(){
         try {
             HttpHeaders headers = new HttpHeaders();

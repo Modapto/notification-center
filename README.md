@@ -48,6 +48,20 @@ It is based on Java Spring Boot framework utilizing Java 21. At the moment all e
     user.manager.component.url=
     ```
 
+4. If deployed through Docker Compose file the following Environmental Variables must be defined:
+
+    ```sh
+        SERVER_PORT=${APP_PORT}
+        ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
+        ELASTIC_USERNAME=${ELASTIC_USERNAME}
+        ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+        KEYCLOAK_REALM_URL=${KEYCLOAK_REALM_URL}
+        KEYCLOAK_CLIENT=modapto
+        KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+        USER_MANAGER_URL=
+        KAFKA_BROKERS_URL=
+    ```
+
 ### Usage
 
 1. Run the application after Keycloak is deployed:

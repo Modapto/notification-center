@@ -1,13 +1,16 @@
 package gr.atc.modapto.controller;
 
-import gr.atc.modapto.dto.EventDto;
-import gr.atc.modapto.dto.EventMappingsDto;
-import gr.atc.modapto.enums.MessagePriority;
-import gr.atc.modapto.enums.UserRole;
-import gr.atc.modapto.service.IEventService;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,21 +18,20 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import gr.atc.modapto.dto.EventDto;
+import gr.atc.modapto.dto.EventMappingsDto;
+import gr.atc.modapto.enums.MessagePriority;
+import gr.atc.modapto.enums.UserRole;
+import gr.atc.modapto.exception.CustomExceptions;
+import gr.atc.modapto.service.IEventService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -148,6 +150,30 @@ class EventControllerTests {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", is("Error storing event mapping!")));
+    }
+
+    @DisplayName("Delete Event Mapping by ID: Success")
+    @Test
+    void givenValidEventMappingId_whenDeleteEventMappingById_thenReturnSuccess() throws Exception {
+        given(eventService.deleteEventMappingById("mappingId")).willReturn(true);
+
+        mockMvc.perform(delete("/api/events/mappings/mappingId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Event mapping deleted successfully!")));
+    }
+
+    @DisplayName("Delete Event Mapping by ID: Not Found message")
+    @Test
+    void givenInvalidEventMappingId_whenDeleteEventMappingById_thenReturnNotFoundMessage() throws Exception {
+        given(eventService.deleteEventMappingById(any())).willThrow(CustomExceptions.DataNotFoundException.class);
+
+        mockMvc.perform(delete("/api/events/mappings/invalidId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isExpectationFailed())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Requested resource not found in DB")));
     }
 
     @DisplayName("Get All Event Mappings: Success")

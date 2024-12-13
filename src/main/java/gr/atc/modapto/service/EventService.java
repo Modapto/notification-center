@@ -4,22 +4,23 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import gr.atc.modapto.dto.EventMappingsDto;
-import gr.atc.modapto.model.Event;
-import gr.atc.modapto.model.EventMappings;
-import gr.atc.modapto.repository.EventMappingsRepository;
-import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.MappingException;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import static gr.atc.modapto.exception.CustomExceptions.*;
 
 import gr.atc.modapto.dto.EventDto;
+import gr.atc.modapto.dto.EventMappingsDto;
 import gr.atc.modapto.enums.UserRole;
+import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
+import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
+import gr.atc.modapto.model.Event;
+import gr.atc.modapto.model.EventMappings;
+import gr.atc.modapto.repository.EventMappingsRepository;
 import gr.atc.modapto.repository.EventRepository;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * EventService class to manage transactions with MongoDB about Event collection
@@ -141,5 +142,23 @@ public class EventService implements IEventService {
             return existingEventMappings.get().getUserRoles();
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * Delete an Event Mapping in DB if exists
+     * 
+     * @param mappingId : Event Mapping ID
+     * @return True on success, false on Error
+     */
+    @Override
+    public boolean deleteEventMappingById(String mappingId) {
+        // Try to locate if event mapping exists
+        Optional<EventMappings> existingEventMapping = eventMappingsRepository.findById(mappingId);
+        if (existingEventMapping.isEmpty())
+            throw new DataNotFoundException("Event Mapping with id: " + mappingId + " not found in DB");
+
+        // Delete the event mapping
+        eventMappingsRepository.deleteById(mappingId);
+        return true;
     }
 }

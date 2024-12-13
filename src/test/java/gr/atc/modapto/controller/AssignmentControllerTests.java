@@ -1,15 +1,19 @@
 package gr.atc.modapto.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import gr.atc.modapto.dto.AssignmentCommentDto;
-import gr.atc.modapto.dto.AssignmentDto;
-import gr.atc.modapto.enums.AssignmentStatus;
-import gr.atc.modapto.enums.MessagePriority;
-import gr.atc.modapto.exception.CustomExceptions;
-import gr.atc.modapto.service.IAssignmentService;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import static org.hamcrest.CoreMatchers.is;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,20 +28,21 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import gr.atc.modapto.dto.AssignmentCommentDto;
+import gr.atc.modapto.dto.AssignmentDto;
+import gr.atc.modapto.enums.AssignmentStatus;
+import gr.atc.modapto.enums.MessagePriority;
+import gr.atc.modapto.exception.CustomExceptions;
+import gr.atc.modapto.service.IAssignmentService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -268,6 +273,30 @@ class AssignmentControllerTests {
                 .andExpect(jsonPath("$.message", is("Requested resource not found in DB")));
     }
 
+    @DisplayName("Delete Assignment by ID: Success")
+    @Test
+    void givenValidAssignmentId_whenDeleteAssignmentById_thenReturnSuccess() throws Exception {
+        given(assignmentService.deleteAssignmentById("assignmentId")).willReturn(true);
+
+        mockMvc.perform(delete("/api/assignments/assignmentId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Assignment deleted successfully!")));
+    }
+
+    @DisplayName("Delete Assignment by ID: Not Found message")
+    @Test
+    void givenInvalidAssignmentId_whenDeleteAssignmentById_thenReturnNotFoundMessage() throws Exception {
+        given(assignmentService.deleteAssignmentById(anyString())).willThrow(CustomExceptions.DataNotFoundException.class);
+
+        mockMvc.perform(delete("/api/assignments/invalidId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isExpectationFailed())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Requested resource not found in DB")));
+    }
+
     @DisplayName("Create Assignment: Success")
     @Test
     void givenValidAssignmentDto_whenCreateAssignment_thenReturnAssignmentId() throws Exception {
@@ -330,7 +359,7 @@ class AssignmentControllerTests {
     @Test
     void givenValidAssignmentIdAndDto_whenUpdateAssignment_thenReturnSuccess() throws Exception {
         // When - Then
-        mockMvc.perform(put("/api/assignments/update/assignmentId")
+        mockMvc.perform(put("/api/assignments/assignmentId")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testAssignment)))
                 .andExpect(status().isOk())
@@ -341,7 +370,7 @@ class AssignmentControllerTests {
     @DisplayName("Update Assignment Comments: Success")
     @Test
     void givenValidAssignmentIdAndCommentDto_whenUpdateAssignmentComments_thenReturnSuccess() throws Exception {
-        mockMvc.perform(put("/api/assignments/update/assignmentId/comments")
+        mockMvc.perform(put("/api/assignments/assignmentId/comments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testComment)))
                 .andExpect(status().isOk())

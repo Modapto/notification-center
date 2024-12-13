@@ -100,4 +100,5 @@ public class SecurityConfig {
     public JwtDecoder jwtDecoder() {
         return JwtDecoders.fromIssuerLocation(issuerUri);
     }
+
 }

@@ -43,3 +43,4 @@ src/main/resources/**/application-local.properties
 src/main/resources/static/**/script.js
 TODO
 .dockerignore
+Event-Schema.json

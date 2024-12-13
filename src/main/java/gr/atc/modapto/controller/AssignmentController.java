@@ -1,5 +1,27 @@
 package gr.atc.modapto.controller;
 
+import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import gr.atc.modapto.dto.AssignmentCommentDto;
 import gr.atc.modapto.dto.AssignmentDto;
 import gr.atc.modapto.dto.PaginatedResultsDto;
@@ -12,19 +34,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Arrays;
-import java.util.concurrent.CompletableFuture;
 
 
 @RestController
@@ -208,7 +217,7 @@ public class AssignmentController {
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
             @ApiResponse(responseCode = "500", description = "Unable to create and store assignment")
     })
-    @PutMapping("/update/{assignmentId}")
+    @PutMapping("/{assignmentId}")
     public ResponseEntity<BaseAppResponse<String>> updateAssignment(@PathVariable String assignmentId, @RequestBody AssignmentDto assignmentDto) {
         assignmentService.updateAssignment(assignmentId, assignmentDto);
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment updated successfully!"), HttpStatus.OK);
@@ -228,10 +237,29 @@ public class AssignmentController {
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
             @ApiResponse(responseCode = "500", description = "Unable to create and store assignment")
     })
-    @PutMapping("/update/{assignmentId}/comments")
+    @PutMapping("/{assignmentId}/comments")
     public ResponseEntity<BaseAppResponse<String>> updateAssignmentComments(@PathVariable String assignmentId, @RequestBody AssignmentCommentDto assignmentComment) {
         assignmentService.updateAssignmentComments(assignmentId, assignmentComment);
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment comments updated successfully!"), HttpStatus.OK);
+    }
+
+    /**
+     * Delete an assignment by ID
+     *
+     * @param assignmentId: Id of assignment
+     * @return Message of success or error
+     */
+    @Operation(summary = "Delete an assignment by ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Assignment deleted successfully!"),
+            @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
+            @ApiResponse(responseCode = "417", description = "Assignment with id [ID] not found in DB")
+    })
+    @DeleteMapping("/{assignmentId}")
+    public ResponseEntity<BaseAppResponse<String>> deleteAssignmentById(@PathVariable String assignmentId) {
+        assignmentService.deleteAssignmentById(assignmentId);
+        return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment deleted successfully!"), HttpStatus.OK);
     }
 
     /**

@@ -1,10 +1,10 @@
 package gr.atc.modapto.service;
 
+import java.util.List;
+
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.EventMappingsDto;
 import gr.atc.modapto.enums.UserRole;
-
-import java.util.List;
 
 public interface IEventService {
 
@@ -19,4 +19,6 @@ public interface IEventService {
     List<EventMappingsDto> retrieveAllEventMappings();
 
     List<UserRole> retrieveUserRolesPerEventType(String eventType, String productionModule, String smartService);
+
+    boolean deleteEventMappingById(String mappingId);
 }

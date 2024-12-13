@@ -1,26 +1,5 @@
 package gr.atc.modapto.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import gr.atc.modapto.dto.AssignmentCommentDto;
-import gr.atc.modapto.dto.AssignmentDto;
-import gr.atc.modapto.dto.NotificationDto;
-import gr.atc.modapto.enums.*;
-import gr.atc.modapto.model.Assignment;
-import gr.atc.modapto.repository.AssignmentRepository;
-import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.modelmapper.ModelMapper;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -28,8 +7,41 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import gr.atc.modapto.dto.AssignmentCommentDto;
+import gr.atc.modapto.dto.AssignmentDto;
+import gr.atc.modapto.dto.NotificationDto;
+import gr.atc.modapto.enums.AssignmentStatus;
+import gr.atc.modapto.enums.AssignmentType;
+import gr.atc.modapto.enums.MessagePriority;
+import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
+import gr.atc.modapto.model.Assignment;
+import gr.atc.modapto.repository.AssignmentRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AssignmentServiceTests {
@@ -250,5 +262,35 @@ class AssignmentServiceTests {
         // Then
         assertNotNull(result);
         verify(webSocketService, times(1)).notifyUserWebSocket(eq("testUser"), anyString());
+    }
+
+    @DisplayName("Delete Assignment: Success")
+    @Test
+    void givenExistingAssignment_whenDeleteAssignment_thenDeleteFromDB() {
+        // Given
+        Assignment assignment = new Assignment();
+        assignment.setId("1");
+
+        // When
+        when(assignmentRepository.findById("1")).thenReturn(Optional.of(assignment));
+
+        assignmentService.deleteAssignmentById("1");
+
+        // Then
+        verify(assignmentRepository, times(1)).deleteById(anyString());
+    }
+
+    @DisplayName("Delete Assignment: Not Found")
+    @Test
+    void givenNonExistingAssignment_whenDeleteAssignment_thenThrowException() {
+        // When
+        when(assignmentRepository.findById(anyString())).thenReturn(Optional.empty());
+
+        DataNotFoundException exception = assertThrows(DataNotFoundException.class, () -> {
+            assignmentService.deleteAssignmentById("invalid");
+        });
+
+        // Then
+        assertEquals("Assignment with id: invalid not found in DB", exception.getMessage());
     }
 }

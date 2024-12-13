@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class EventDto {
+public class EventDto<T> {
     @JsonProperty("eventId")
     private String id;
 
@@ -43,4 +43,7 @@ public class EventDto {
 
     @JsonProperty("topic")
     private String topic;
+
+    @JsonProperty("results")
+    private T results;
 }

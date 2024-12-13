@@ -8,23 +8,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import gr.atc.modapto.model.Notification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.EventMappingsDto;
@@ -257,5 +257,35 @@ class EventServiceTests {
 
         // Then
         assertTrue(result.isEmpty());
+    }
+
+    @DisplayName("Delete Event Mapping: Success")
+    @Test
+    void givenExistingEventMapping_whenDeleteEventMapping_thenDeleteFromDB() {
+        // Given
+        EventMappings mapping = new EventMappings();
+        mapping.setId("1");
+
+        // When
+        when(eventMappingsRepository.findById("1")).thenReturn(Optional.of(mapping));
+
+        eventService.deleteEventMappingById("1");
+
+        // Then
+        verify(eventMappingsRepository, times(1)).deleteById(anyString());
+    }
+
+    @DisplayName("Delete Event Mapping: Not Found")
+    @Test
+    void givenNonExistingEventMapping_whenDeleteEventMapping_thenThrowException() {
+        // When
+        when(eventMappingsRepository.findById(anyString())).thenReturn(Optional.empty());
+
+        DataNotFoundException exception = assertThrows(DataNotFoundException.class, () -> {
+            eventService.deleteEventMappingById("invalid");
+        });
+
+        // Then
+        assertEquals("Event Mapping with id: invalid not found in DB", exception.getMessage());
     }
 }
