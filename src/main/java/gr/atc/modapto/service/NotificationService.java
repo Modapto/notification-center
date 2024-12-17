@@ -98,6 +98,7 @@ public class NotificationService implements INotificationService {
      * @param userId: Id of user
      * @return List<NotificationDto>
      */
+    @Override
     public List<NotificationDto> retrieveNotificationPerUserId(String userId){
         try{
             Page<Notification> notificationPage = notificationRepository.findByUserId(userId, Pageable.unpaged());
@@ -131,6 +132,7 @@ public class NotificationService implements INotificationService {
      * @param notificationId: Id of notification
      * @return NotificationDto
      */
+    @Override
     public NotificationDto retrieveNotificationById(String notificationId){
         try{
             Optional<Notification> optionalNotification = notificationRepository.findById(notificationId);
@@ -143,11 +145,12 @@ public class NotificationService implements INotificationService {
     }
 
     /**
-     * Retrieve all user ids from User Manager Service
+     * Retrieve all user ids for a specific Pilot from User Manager Service
      *
      * @return List<String> : List with user Ids
      */
-    public List<String> retrieveAllUserIds() {
+    @Override
+    public List<String> retrieveUserIdsPerPilot(String pilot) {
         // Retrieve Component's JWT Token - Client credentials
         String token = retrieveComponentJwtToken();
         if (token == null){
@@ -163,7 +166,7 @@ public class NotificationService implements INotificationService {
 
             HttpEntity<BaseAppResponse<List<String>>> entity = new HttpEntity<>(headers);
             ResponseEntity<BaseAppResponse<List<String>>> response = restTemplate.exchange(
-                    userManagerUrl.concat("/api/users/ids"),
+                    userManagerUrl.concat("/api/users/ids/pilot/").concat(pilot.toUpperCase()),
                     HttpMethod.GET,
                     entity,
                     new ParameterizedTypeReference<>() {
@@ -175,10 +178,10 @@ public class NotificationService implements INotificationService {
             }
             return Collections.emptyList();
         } catch (HttpClientErrorException | HttpServerErrorException e) {
-            log.error("HTTP error during retrieving user ids: Error: {}", e.getMessage());
+            log.error("HTTP error during retrieving user ids for specific pilot: Error: {}", e.getMessage());
             return Collections.emptyList();
         } catch (RestClientException e) {
-            log.error("Rest Client error during retrieving user ids: Error: {}", e.getMessage());
+            log.error("Rest Client error during retrieving user ids for specific pilot: Error: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -189,6 +192,7 @@ public class NotificationService implements INotificationService {
      * @param roles: User Roles correlated with an event
      * @return List<String> : List with user Ids
      */
+    @Override
     public List<String> retrieveUserIdsPerRoles(List<UserRole> roles){
         // Retrieve Component's JWT Token - Client credentials
         String token = retrieveComponentJwtToken();
@@ -200,7 +204,7 @@ public class NotificationService implements INotificationService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(token);
 
-        HttpEntity<BaseAppResponse<List<String>>> entity = new HttpEntity<>(headers);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
         // Retrieve User Ids per role
         List<String> userIds = new ArrayList<>();
         roles.forEach(role -> {

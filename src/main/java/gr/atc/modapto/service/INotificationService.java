@@ -4,6 +4,7 @@ import java.util.List;
 
 import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.enums.UserRole;
+
 public interface INotificationService {
     String storeNotification(NotificationDto eventNotification);
 
@@ -15,7 +16,7 @@ public interface INotificationService {
 
     NotificationDto retrieveNotificationById(String notificationId);
 
-    List<String> retrieveAllUserIds();
+    List<String> retrieveUserIdsPerPilot(String pilot);
 
     List<String> retrieveUserIdsPerRoles(List<UserRole> roles);
 }

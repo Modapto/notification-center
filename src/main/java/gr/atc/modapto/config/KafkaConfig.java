@@ -3,20 +3,24 @@ package gr.atc.modapto.config;
 import java.util.HashMap;
 import java.util.Map;
 
-import gr.atc.modapto.dto.EventDto;
-
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.core.*;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
+import gr.atc.modapto.dto.EventDto;
+
 @Configuration
+@EnableKafka
 public class KafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
@@ -37,14 +41,21 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
 
+        // Configure advanced JSON deserialization
+        JsonDeserializer<EventDto> jsonDeserializer = new JsonDeserializer<>(EventDto.class, false);
+        jsonDeserializer.addTrustedPackages("gr.atc.modapto.dto", "gr.atc.modapto.model");
+        jsonDeserializer.setUseTypeHeaders(true);
+
+
         return new DefaultKafkaConsumerFactory<>(props,
             new ErrorHandlingDeserializer<>(new StringDeserializer()),
-            new ErrorHandlingDeserializer<>(new JsonDeserializer<>(EventDto.class, false)));
+            new ErrorHandlingDeserializer<>(jsonDeserializer));
     }
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, EventDto> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, EventDto> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, EventDto> factory = 
+            new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         return factory;
     }

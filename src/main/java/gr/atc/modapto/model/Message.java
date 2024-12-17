@@ -26,4 +26,7 @@ public class Message{
     @Field(type = FieldType.Keyword, name ="priority")
     private MessagePriority priority;
 
+    @Field(type = FieldType.Keyword, name ="pilot")
+    private String pilot;
+
 }

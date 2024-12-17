@@ -22,16 +22,9 @@ public class WebSocketService {
      * @param message : String message
      * @param role : User Role so users can connect and receive notifications
      */
-    public void notifyRolesWebSocket(String message, String role){
+    public void notifyRolesWebSocket(String message, String topicName){
         try {
-            String websocketTopic;
-            // Check if role given is valid
-            if (!EnumUtils.isValidEnum(UserRole.class, role)){
-                log.error("Invalid role inserted: {}", role);
-                return;
-            }
-
-            websocketTopic = "/topic/" + role.toLowerCase();
+            String websocketTopic = "/topic/events/" + topicName.toLowerCase();
             log.info("Notifying websocket topic: {} with message: {}", websocketTopic, message);
             messagingTemplate.convertAndSend(websocketTopic, message);
         } catch (MessagingException e) {

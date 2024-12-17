@@ -1,6 +1,6 @@
 package gr.atc.modapto.config;
 
-import java.util.Collections;
+import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -55,13 +55,15 @@ public class SecurityConfig {
                 .cors(corsCustomizer -> corsCustomizer.configurationSource(corsConfigurationSource()))
                 // Configure CSRF Token
                 .csrf(csrf -> csrf.csrfTokenRequestHandler(requestHandler)
-                        .ignoringRequestMatchers("/api/events/**", "/api/notifications/**", "/api/assignments/**", "/api/notification-center/**") // For now ignore all requests under api/notifications
+                        .ignoringRequestMatchers("/api/events/**", "/api/notifications/**", "/api/assignments/**",
+                                "/api/notification-center/**") // For now ignore all requests under api/notifications
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .exceptionHandling(exc -> exc.authenticationEntryPoint(entryPoint))
                 // HTTP Requests authorization properties on URLs
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
-                        .anyRequest().permitAll()) // Will be changed in the integration phase - permit "/api/notification-center/**"
+                        .anyRequest().permitAll()) // Will be changed in the integration phase - permit
+                                                   // "/api/notification-center/**"
                 // JWT Authentication Configuration
                 .oauth2ResourceServer(oauth2ResourceServerCustomizer -> oauth2ResourceServerCustomizer
                         .jwt(jwtCustomizer -> jwtCustomizer.jwtAuthenticationConverter(jwtAuthConverter)));
@@ -86,10 +88,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Collections.singletonList("*")); // For now, we enable all Origins until the finalized version
-        configuration.setAllowedMethods(Collections.singletonList("*"));
-        configuration.setAllowedHeaders(Collections.singletonList("*"));
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:3000",
+                "https://dashboard.modapto.atc.gr",
+                "https://services.modapto.atc.gr",
+                "https://keycloak.modapto.atc.gr",
+                "https://kafka.modapto.atc.gr"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(86400L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

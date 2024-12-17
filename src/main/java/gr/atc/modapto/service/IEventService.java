@@ -5,7 +5,6 @@ import java.util.List;
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.EventMappingsDto;
 import gr.atc.modapto.enums.UserRole;
-
 public interface IEventService {
 
     String storeIncomingEvent(EventDto event);

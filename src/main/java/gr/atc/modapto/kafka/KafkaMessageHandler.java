@@ -3,11 +3,6 @@ package gr.atc.modapto.kafka;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import gr.atc.modapto.dto.EventDto;
-import gr.atc.modapto.service.IEventService;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.TopicBuilder;
@@ -18,13 +13,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.enums.NotificationStatus;
 import gr.atc.modapto.enums.NotificationType;
 import gr.atc.modapto.enums.UserRole;
 import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
+import gr.atc.modapto.service.IEventService;
 import gr.atc.modapto.service.INotificationService;
 import gr.atc.modapto.service.WebSocketService;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -48,12 +47,18 @@ public class KafkaMessageHandler {
      */
     @KafkaListener(topics = { "self-awareness" }, groupId = "${spring.kafka.consumer.group-id}")
     public void consume(EventDto event){
+        // Validate that same essential variables are present
+        if (event.getPriority() == null || event.getProductionModule() == null || event.getPilot() == null){
+            log.error("Either priority or production module or pilot code is missing from the event. Message is discarded!");
+            return;
+        }
+
         // Store incoming Event
         try{
             // Store incoming event
             String eventId = eventService.storeIncomingEvent(event);
             if (eventId == null){
-                log.error("Event could not be stored in DB");
+                log.error("Event could not be stored in DB. Message is discarded!");
                 return;
             }
             event.setId(eventId);
@@ -63,8 +68,8 @@ public class KafkaMessageHandler {
             List<UserRole> userRolesPerEventType = eventService.retrieveUserRolesPerEventType(event.getEventType(), event.getProductionModule(), event.getSmartService());
             List<String> userIds;
             if (userRolesPerEventType.isEmpty()){
-                log.warn("Unable to locate user roles for this event type. All users will be informed!");
-                userIds = notificationService.retrieveAllUserIds();
+                log.info("Unable to locate user roles for this event type. All users in pilot will be informed!");
+                userIds = notificationService.retrieveUserIdsPerPilot(event.getPilot());
             } else {
                 userIds = notificationService.retrieveUserIdsPerRoles(userRolesPerEventType);
             }
@@ -94,10 +99,13 @@ public class KafkaMessageHandler {
                 }
             }
 
+            // Remove userId from notification and convert it to String
+            eventNotification.setUserId(null);
             String message = objectMapper.writeValueAsString(eventNotification);
             if (userRolesPerEventType.isEmpty())
-                webSocketService.notifyRolesWebSocket(message, UserRole.GLOBAL.toString());
-            else
+                // Send notification globally to pilot users
+                webSocketService.notifyRolesWebSocket(message, event.getPilot());
+            else 
                 // Send notification through WebSockets to all user roles
                 userRolesPerEventType.forEach(role -> webSocketService.notifyRolesWebSocket(message, role.toString()));
         } catch (JsonProcessingException e){

@@ -58,6 +58,7 @@ class EventControllerTests {
                 .smartService("Test Smart Service")
                 .productionModule("Test Production Module")
                 .eventType(null)
+                .pilot("SEW")
                 .timestamp(LocalDateTime.now())
                 .description(null)
                 .priority(MessagePriority.HIGH)
