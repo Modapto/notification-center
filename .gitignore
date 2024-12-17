@@ -36,8 +36,6 @@ build/
 test.json
 src/main/resources/static/index.html
 
-docker-compose.yml
-.env
 /data
 src/main/resources/**/application-local.properties
 src/main/resources/static/**/script.js

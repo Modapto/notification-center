@@ -1,0 +1,24 @@
+services:
+  notification-center:
+      image: ${APP_IMAGE}
+      container_name: notification-center
+      restart: unless-stopped
+      env_file: .env
+      environment:
+        - SERVER_PORT=${APP_PORT}
+        - ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
+        - ELASTIC_USERNAME=${ELASTIC_USERNAME}
+        - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+        - KEYCLOAK_REALM_URL=${KEYCLOAK_REALM_URL}
+        - KEYCLOAK_CLIENT=modapto
+        - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+        - USER_MANAGER_URL=http://user-manager:8093
+        - KAFKA_BROKERS_URL=localhost:9092
+      ports:
+        - ${APP_PORT}:${APP_PORT}
+      networks:
+        - modapto
+
+networks:
+  modapto:
+    external: true
