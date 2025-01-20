@@ -1,6 +1,30 @@
 package gr.atc.modapto.service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+import org.modelmapper.MappingException;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import gr.atc.modapto.controller.BaseAppResponse;
 import gr.atc.modapto.dto.NotificationDto;
@@ -11,21 +35,6 @@ import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.model.Notification;
 import gr.atc.modapto.repository.NotificationRepository;
 import lombok.extern.slf4j.Slf4j;
-
-import org.modelmapper.MappingException;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.*;
-import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
 @Service
 @Slf4j
@@ -78,15 +87,15 @@ public class NotificationService implements INotificationService {
 
     /**
      * Retrieve all notifications
-     *
+     * 
+     * @param pageable : Pagination Attributes
      * @return List<NotificationDto>
      */
     @Override
-    public List<NotificationDto> retrieveAllNotifications() {
+    public Page<NotificationDto> retrieveAllNotifications(Pageable pageable) {
         try {
-            Page<Notification> notificationPage = notificationRepository.findAll(Pageable.unpaged());
-            List<Notification> notifications = notificationPage.getContent();
-            return notifications.stream().map(notification -> modelMapper.map(notification, NotificationDto.class)).toList();
+            Page<Notification> notificationPage = notificationRepository.findAll(pageable);
+            return notificationPage.map(notification -> modelMapper.map(notification, NotificationDto.class));
         } catch (MappingException e) {
             throw new ModelMappingException(MAPPING_ERROR + e.getMessage());
         }
@@ -95,15 +104,15 @@ public class NotificationService implements INotificationService {
     /**
      * Retrieve all notifications for a specific user
      *
-     * @param userId: Id of user
+     * @param userId : Id of user
+     * @param pageable : Pagination Attributes
      * @return List<NotificationDto>
      */
     @Override
-    public List<NotificationDto> retrieveNotificationPerUserId(String userId){
+    public Page<NotificationDto> retrieveAllNotificationsPerUserId(String userId, Pageable pageable){
         try{
-            Page<Notification> notificationPage = notificationRepository.findByUserId(userId, Pageable.unpaged());
-            List<Notification> notifications = notificationPage.getContent();
-            return notifications.stream().map(notification -> modelMapper.map(notification, NotificationDto.class)).toList();
+            Page<Notification> notificationPage = notificationRepository.findByUserId(userId, pageable);
+            return notificationPage.map(notification -> modelMapper.map(notification, NotificationDto.class));
         } catch (MappingException e) {
             throw new ModelMappingException(MAPPING_ERROR + e.getMessage());
         }

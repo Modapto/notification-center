@@ -1,6 +1,7 @@
 package gr.atc.modapto.config;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -94,8 +95,8 @@ public class SecurityConfig {
                 "https://services.modapto.atc.gr",
                 "https://keycloak.modapto.atc.gr",
                 "https://kafka.modapto.atc.gr"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(86400L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

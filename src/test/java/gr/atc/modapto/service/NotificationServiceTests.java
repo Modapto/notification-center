@@ -25,7 +25,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -125,12 +124,12 @@ class NotificationServiceTests {
         when(modelMapper.map(notification, NotificationDto.class)).thenReturn(notificationDto);
 
         // When
-        List<NotificationDto> result = notificationService.retrieveAllNotifications();
+        Page<NotificationDto> result = notificationService.retrieveAllNotifications(Pageable.ofSize(10));
 
         // Then
         assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("1", result.get(0).getId());
+        assertEquals(1, result.getContent().size());
+        assertEquals("1", result.getContent().getFirst().getId());
     }
 
     @DisplayName("Retrieve All Notifications: Mapping Exception")
@@ -143,7 +142,7 @@ class NotificationServiceTests {
 
         // When - Then
         assertThrows(ModelMappingException.class, () -> {
-            notificationService.retrieveAllNotifications();
+            notificationService.retrieveAllNotifications(Pageable.ofSize(10));
         });
     }
 
@@ -156,12 +155,12 @@ class NotificationServiceTests {
         when(modelMapper.map(notification, NotificationDto.class)).thenReturn(notificationDto);
 
         // When
-        List<NotificationDto> result = notificationService.retrieveNotificationPerUserId("user1");
+        Page<NotificationDto> result = notificationService.retrieveAllNotificationsPerUserId("user1", Pageable.ofSize(10));
 
         // Then
         assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("1", result.get(0).getId());
+        assertEquals(1, result.getContent().size());
+        assertEquals("1", result.getContent().getFirst().getId());
     }
 
     @DisplayName("Retrieve Unread Notifications by User ID: Success")
@@ -179,7 +178,7 @@ class NotificationServiceTests {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("1", result.get(0).getId());
+        assertEquals("1", result.getFirst().getId());
     }
 
     @DisplayName("Retrieve Notification by ID: Success")

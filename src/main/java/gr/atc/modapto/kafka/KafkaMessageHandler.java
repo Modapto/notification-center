@@ -4,9 +4,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaAdmin;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,13 +25,15 @@ import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.service.IEventService;
 import gr.atc.modapto.service.INotificationService;
 import gr.atc.modapto.service.WebSocketService;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@AllArgsConstructor
 public class KafkaMessageHandler {
+
+    @Value("${kafka.topics}")
+    @SuppressWarnings("unused")
+    private List<String> kafkaTopics;
 
     private final KafkaAdmin kafkaAdmin;
 
@@ -40,13 +45,21 @@ public class KafkaMessageHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
+    public KafkaMessageHandler(KafkaAdmin kafkaAdmin, IEventService eventService, INotificationService notificationService, WebSocketService webSocketService) {
+        kafkaAdmin.setAutoCreate(true);
+        this.kafkaAdmin = kafkaAdmin;
+        this.eventService = eventService;
+        this.notificationService = notificationService;
+        this.webSocketService = webSocketService;
+    }
+
     /**
-     * Kafka consumer method to receive a JSON Event message
+     * Kafka consumer method to receive a JSON Event message - From Kafka Producers
      *
      * @param event: Event occurred in MODAPTO
      */
-    @KafkaListener(topics = { "self-awareness" }, groupId = "${spring.kafka.consumer.group-id}")
-    public void consume(EventDto event){
+    @KafkaListener(topics = "#{'${kafka.topics}'.split(',')}", groupId = "${spring.kafka.consumer.group-id}")
+    public void consume(EventDto event, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic){
         // Validate that same essential variables are present
         if (event.getPriority() == null || event.getProductionModule() == null || event.getPilot() == null){
             log.error("Either priority or production module or pilot code is missing from the event. Message is discarded!");

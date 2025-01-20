@@ -93,14 +93,14 @@ public class EventService implements IEventService {
     /**
      * Fetch all the available Events from DB
      *
+     * @param pageable : Pagination Options
      * @return List<EventDto>: list of Events
      */
     @Override
-    public List<EventDto> retrieveAllEvents() {
+    public Page<EventDto> retrieveAllEvents(Pageable pageable) {
         try {
-            Page<Event> eventPage = eventRepository.findAll(Pageable.unpaged());
-            List<Event> events = eventPage.getContent();
-            return events.stream().map(event -> modelMapper.map(event, EventDto.class)).toList();
+            Page<Event> eventPage = eventRepository.findAll(pageable);
+            return eventPage.map(event -> modelMapper.map(event, EventDto.class));
         } catch (MappingException e) {
             throw new ModelMappingException("Error mapping Events to Dto - Error: " + e.getMessage());
         }

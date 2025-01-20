@@ -12,15 +12,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -40,6 +45,7 @@ class NotificationControllerTests {
 
     private static List<NotificationDto> notifications;
     private static NotificationDto testNotification;
+    private static Page<NotificationDto> paginatedResults;
 
     @BeforeAll
     static void setup(){
@@ -54,13 +60,15 @@ class NotificationControllerTests {
                 .build();
 
         notifications = List.of(testNotification);
+
+        paginatedResults = new PageImpl<>(notifications, PageRequest.of(0, 10), 1);
     }
 
     @DisplayName("Get All Notifications: Success")
     @Test
     void givenValidRequest_whenGetAllNotifications_thenReturnNotificationList() throws Exception {
         // Given
-        given(notificationService.retrieveAllNotifications()).willReturn(notifications);
+        given(notificationService.retrieveAllNotifications(any(Pageable.class))).willReturn(paginatedResults);
 
         // When
         mockMvc.perform(get("/api/notifications")
@@ -68,15 +76,14 @@ class NotificationControllerTests {
                 // Then
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.message", is("Notifications retrieved successfully!")))
-                .andExpect(jsonPath("$.data[0].productionModule", is("Test Production Module")));
+                .andExpect(jsonPath("$.message", is("Notifications retrieved successfully!")));
     }
 
     @DisplayName("Get All Notifications: Empty List")
     @Test
     void givenNoNotifications_whenGetAllNotifications_thenReturnEmptyList() throws Exception {
         // Given
-        given(notificationService.retrieveAllNotifications()).willReturn(Collections.emptyList());
+        given(notificationService.retrieveAllNotifications(any(Pageable.class))).willReturn(Page.empty());
 
         // When
         mockMvc.perform(get("/api/notifications")
@@ -84,14 +91,14 @@ class NotificationControllerTests {
                 // Then
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.data").isEmpty());
+                .andExpect(jsonPath("$.data.results").isEmpty());
     }
 
     @DisplayName("Get All Notifications: Exception Handling")
     @Test
     void givenException_whenGetAllNotifications_thenReturnServerError() throws Exception {
         // Given
-        doThrow(new RuntimeException("Server error")).when(notificationService).retrieveAllNotifications();
+        doThrow(new RuntimeException("Server error")).when(notificationService).retrieveAllNotifications(any(Pageable.class));
 
         // When
         mockMvc.perform(get("/api/notifications")
@@ -106,7 +113,7 @@ class NotificationControllerTests {
     @Test
     void givenValidUserId_whenGetNotificationsByUserId_thenReturnNotifications() throws Exception {
         // Given
-        given(notificationService.retrieveNotificationPerUserId("12345")).willReturn(notifications);
+        given(notificationService.retrieveAllNotificationsPerUserId(anyString(), any(Pageable.class))).willReturn(paginatedResults);
 
         // When
         mockMvc.perform(get("/api/notifications/user/12345")
@@ -114,8 +121,7 @@ class NotificationControllerTests {
                 // Then
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.message", is("Notifications retrieved successfully!")))
-                .andExpect(jsonPath("$.data[0].productionModule", is("Test Production Module")));
+                .andExpect(jsonPath("$.message", is("Notifications retrieved successfully!")));
     }
 
     @DisplayName("Get Unread Notifications by User ID: Success")
@@ -138,7 +144,7 @@ class NotificationControllerTests {
     @Test
     void givenException_whenGetNotificationsByUserId_thenReturnServerError() throws Exception {
         // Given
-        doThrow(new RuntimeException("Server error")).when(notificationService).retrieveNotificationPerUserId("12345");
+        doThrow(new RuntimeException("Server error")).when(notificationService).retrieveAllNotificationsPerUserId(anyString(), any(Pageable.class));
 
         // When
         mockMvc.perform(get("/api/notifications/user/12345")

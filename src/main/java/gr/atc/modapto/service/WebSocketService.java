@@ -1,11 +1,9 @@
 package gr.atc.modapto.service;
 
-import org.apache.commons.lang3.EnumUtils;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import gr.atc.modapto.enums.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

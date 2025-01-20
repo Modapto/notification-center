@@ -32,6 +32,7 @@ import gr.atc.modapto.validation.ValidAssignmentType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -56,7 +57,7 @@ public class AssignmentController {
      * @param isAscending : Sort order
      * @return Page<AssignmentDto> : Assignments
      */
-    @Operation(summary = "Retrieve all Assignments")
+    @Operation(summary = "Retrieve all Assignments", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = ASSIGNMENT_SUCCESS),
             @ApiResponse(responseCode = "400", description = "Invalid sort attribute."),
@@ -100,7 +101,7 @@ public class AssignmentController {
      * @param isAscending : Sort order
      * @return Page<AssignmentDto> : Assignments
      */
-    @Operation(summary = "Retrieve all Assignment per UserID and Status (optional) and Assignment Type (Source or Received) (optional)")
+    @Operation(summary = "Retrieve all Assignment per UserID and Status (optional) and Assignment Type (Source or Received) (optional)" , security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = ASSIGNMENT_SUCCESS),
             @ApiResponse(responseCode = "400", description = "Invalid assignment status. Only OPEN, ACCEPTED, IN_PROGRESS and COMPLETED are allowed."),
@@ -150,7 +151,7 @@ public class AssignmentController {
      * @param assignmentId: Id of assignment
      * @return AssignmentDto : Assignment requested if found in DB
      */
-    @Operation(summary = "Retrieve an Assignment given its ID")
+    @Operation(summary = "Retrieve an Assignment given its ID", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Assignment retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
@@ -168,7 +169,7 @@ public class AssignmentController {
      * @param assignmentDto: DTO of assignment
      * @return AssignmentId : Id of assignment
      */
-    @Operation(summary = "Create a new assignment")
+    @Operation(summary = "Create a new assignment", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Assignment created successfully!"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
@@ -210,7 +211,7 @@ public class AssignmentController {
      * @param assignmentDto: DTO of assignment
      * @return Message of success or error
      */
-    @Operation(summary = "Update an assignment")
+    @Operation(summary = "Update an assignment", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Assignment updated successfully!"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
@@ -230,7 +231,7 @@ public class AssignmentController {
      * @param assignmentComment: Assignment Comment Dto depending on the user who commented
      * @return Message of success or error
      */
-    @Operation(summary = "Add a comment to an assignment depending on the user (Source or Target)")
+    @Operation(summary = "Add a comment to an assignment depending on the user (Source or Target)", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Assignment comments updated successfully!"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
@@ -249,7 +250,7 @@ public class AssignmentController {
      * @param assignmentId: Id of assignment
      * @return Message of success or error
      */
-    @Operation(summary = "Delete an assignment by ID")
+    @Operation(summary = "Delete an assignment by ID", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Assignment deleted successfully!"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),

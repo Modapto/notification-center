@@ -190,12 +190,12 @@ class EventServiceTests {
         when(modelMapper.map(testEvent, EventDto.class)).thenReturn(testEventDto);
 
         // When
-        List<EventDto> result = eventService.retrieveAllEvents();
+        Page<EventDto> result = eventService.retrieveAllEvents(Pageable.ofSize(10));
 
         // Then
         assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("1", result.get(0).getId());
+        assertEquals(1, result.getContent().size());
+        assertEquals("1", result.getContent().getFirst().getId());
     }
 
     @DisplayName("Retrieve All Events: Mapping Exception")
@@ -208,7 +208,7 @@ class EventServiceTests {
 
         // When - Then
         assertThrows(ModelMappingException.class, () -> {
-            eventService.retrieveAllEvents();
+            eventService.retrieveAllEvents(Pageable.ofSize(10));
         });
     }
 
@@ -226,7 +226,7 @@ class EventServiceTests {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("1", result.get(0).getId());
+        assertEquals("1", result.getFirst().getId());
     }
 
     @DisplayName("Retrieve User Roles per Event: Success")
@@ -242,7 +242,7 @@ class EventServiceTests {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(UserRole.OPERATOR, result.get(0));
+        assertEquals(UserRole.OPERATOR, result.getFirst());
     }
 
     @DisplayName("Retrieve User Roles per Event: No Mappings Found")

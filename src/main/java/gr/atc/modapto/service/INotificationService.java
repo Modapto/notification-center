@@ -2,15 +2,18 @@ package gr.atc.modapto.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.enums.UserRole;
 
 public interface INotificationService {
     String storeNotification(NotificationDto eventNotification);
 
-    List<NotificationDto> retrieveAllNotifications();
+    Page<NotificationDto> retrieveAllNotifications(Pageable pageable);
 
-    List<NotificationDto> retrieveNotificationPerUserId(String userId);
+    Page<NotificationDto> retrieveAllNotificationsPerUserId(String userId, Pageable pageable);
 
     List<NotificationDto> retrieveUnreadNotificationsPerUserId(String userId);
 

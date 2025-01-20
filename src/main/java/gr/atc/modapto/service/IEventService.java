@@ -2,9 +2,13 @@ package gr.atc.modapto.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.EventMappingsDto;
 import gr.atc.modapto.enums.UserRole;
+
 public interface IEventService {
 
     String storeIncomingEvent(EventDto event);
@@ -13,7 +17,7 @@ public interface IEventService {
 
     EventDto retrieveEventById(String eventId);
 
-    List<EventDto> retrieveAllEvents();
+    Page<EventDto> retrieveAllEvents(Pageable pageable);
 
     List<EventMappingsDto> retrieveAllEventMappings();
 

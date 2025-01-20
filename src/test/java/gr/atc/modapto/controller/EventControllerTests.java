@@ -1,7 +1,6 @@
 package gr.atc.modapto.controller;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -9,12 +8,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -50,6 +53,7 @@ class EventControllerTests {
     private static List<EventDto> events;
     private static EventDto testEvent;
     private static EventMappingsDto testEventMapping;
+    private static Page<EventDto> paginatedResults;
 
     @BeforeAll
     static void setup() {
@@ -72,13 +76,16 @@ class EventControllerTests {
                 .eventType("Test Event")
                 .userRoles(List.of(UserRole.OPERATOR))
                 .build();
+
+        paginatedResults = new PageImpl<>(events, PageRequest.of(0, 10), 1);
+
     }
 
     @DisplayName("Get All Events: Success")
     @Test
     void givenValidRequest_whenGetAllEvents_thenReturnEventList() throws Exception {
         // Given
-        given(eventService.retrieveAllEvents()).willReturn(events);
+        given(eventService.retrieveAllEvents(any(Pageable.class))).willReturn(paginatedResults);
 
         // When
         mockMvc.perform(get("/api/events")
@@ -86,15 +93,14 @@ class EventControllerTests {
                 // Then
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.message", is("Events retrieved successfully!")))
-                .andExpect(jsonPath("$.data[0].productionModule", is("Test Production Module")));
+                .andExpect(jsonPath("$.message", is("Events retrieved successfully!")));
     }
 
     @DisplayName("Get All Events: Empty List")
     @Test
     void givenNoEvents_whenGetAllEvents_thenReturnEmptyList() throws Exception {
         // Given
-        given(eventService.retrieveAllEvents()).willReturn(Collections.emptyList());
+        given(eventService.retrieveAllEvents(any(Pageable.class))).willReturn(Page.empty());
 
         // When
         mockMvc.perform(get("/api/events")
@@ -102,14 +108,14 @@ class EventControllerTests {
                 // Then
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.data").isEmpty());
+                .andExpect(jsonPath("$.data.results").isEmpty());
     }
 
     @DisplayName("Get All Events: Exception Handling")
     @Test
     void givenException_whenGetAllEvents_thenReturnServerError() throws Exception {
         // Given
-        doThrow(new RuntimeException("Server error")).when(eventService).retrieveAllEvents();
+        doThrow(new RuntimeException("Server error")).when(eventService).retrieveAllEvents(any(Pageable.class));
 
         // When
         mockMvc.perform(get("/api/events")

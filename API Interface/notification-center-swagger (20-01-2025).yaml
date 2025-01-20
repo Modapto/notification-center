@@ -1,8 +1,9 @@
 {
   "openapi": "3.0.1",
   "info": {
-    "title": "OpenAPI definition",
-    "version": "v0"
+    "title": "Notifacation Center API",
+    "description": "API documentation for Notifacation Center service",
+    "version": "1.0"
   },
   "servers": [
     {
@@ -89,7 +90,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       },
       "put": {
         "tags": [
@@ -178,7 +184,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       },
       "delete": {
         "tags": [
@@ -257,7 +268,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/assignments/{assignmentId}/comments": {
@@ -348,7 +364,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/events/mappings/create": {
@@ -429,7 +450,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/assignments/create": {
@@ -510,7 +536,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/notifications": {
@@ -520,13 +551,53 @@
         ],
         "summary": "Retrieve all Notifications",
         "operationId": "getAllNotifications",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "sortAttribute",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "timestamp"
+            }
+          },
+          {
+            "name": "isAscending",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Notifications retrieved successfully!",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
                 }
               }
             }
@@ -561,6 +632,16 @@
               }
             }
           },
+          "404": {
+            "description": "Invalid sort attributes",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
+                }
+              }
+            }
+          },
           "417": {
             "description": "Expectation Failed",
             "content": {
@@ -581,7 +662,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/notifications/{notificationId}": {
@@ -662,7 +748,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/notifications/user/{userId}": {
@@ -680,6 +771,44 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "sortAttribute",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "timestamp"
+            }
+          },
+          {
+            "name": "isAscending",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -688,7 +817,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
                 }
               }
             }
@@ -743,7 +872,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/notifications/user/{userId}/unread": {
@@ -824,7 +958,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/events": {
@@ -834,13 +973,53 @@
         ],
         "summary": "Retrieve all events",
         "operationId": "getAllEvents",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "sortAttribute",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "timestamp"
+            }
+          },
+          {
+            "name": "isAscending",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Events retrieved successfully!",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListEventDto"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoEventDto"
                 }
               }
             }
@@ -875,6 +1054,16 @@
               }
             }
           },
+          "404": {
+            "description": "Invalid sort attributes",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoEventDto"
+                }
+              }
+            }
+          },
           "417": {
             "description": "Expectation Failed",
             "content": {
@@ -895,7 +1084,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/events/mappings": {
@@ -966,7 +1160,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/assignments": {
@@ -1077,7 +1276,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/assignments/user/{userId}": {
@@ -1212,7 +1416,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     },
     "/api/events/mappings/{mappingId}": {
@@ -1293,20 +1502,22 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
       }
     }
   },
   "components": {
     "schemas": {
-      "BaseAppResponseMapStringString": {
+      "BaseAppResponseString": {
         "type": "object",
         "properties": {
           "data": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
+            "type": "string"
           },
           "errors": {
             "type": "object"
@@ -1323,11 +1534,14 @@
           }
         }
       },
-      "BaseAppResponseString": {
+      "BaseAppResponseMapStringString": {
         "type": "object",
         "properties": {
           "data": {
-            "type": "string"
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "errors": {
             "type": "object"
@@ -1455,14 +1669,11 @@
           }
         }
       },
-      "BaseAppResponseListNotificationDto": {
+      "BaseAppResponsePaginatedResultsDtoNotificationDto": {
         "type": "object",
         "properties": {
           "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NotificationDto"
-            }
+            "$ref": "#/components/schemas/PaginatedResultsDtoNotificationDto"
           },
           "errors": {
             "type": "object"
@@ -1534,6 +1745,28 @@
           }
         }
       },
+      "PaginatedResultsDtoNotificationDto": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationDto"
+            }
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastPage": {
+            "type": "boolean"
+          }
+        }
+      },
       "BaseAppResponseNotificationDto": {
         "type": "object",
         "properties": {
@@ -1555,13 +1788,13 @@
           }
         }
       },
-      "BaseAppResponseListEventDto": {
+      "BaseAppResponseListNotificationDto": {
         "type": "object",
         "properties": {
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/EventDto"
+              "$ref": "#/components/schemas/NotificationDto"
             }
           },
           "errors": {
@@ -1579,7 +1812,33 @@
           }
         }
       },
+      "BaseAppResponsePaginatedResultsDtoEventDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PaginatedResultsDtoEventDto"
+          },
+          "errors": {
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "EventDto": {
+        "required": [
+          "pilot",
+          "priority",
+          "productionModule"
+        ],
         "type": "object",
         "properties": {
           "eventId": {
@@ -1589,6 +1848,9 @@
             "type": "string"
           },
           "productionModule": {
+            "type": "string"
+          },
+          "pilot": {
             "type": "string"
           },
           "timestamp": {
@@ -1614,6 +1876,34 @@
           },
           "topic": {
             "type": "string"
+          },
+          "results": {
+            "$ref": "#/components/schemas/JsonNode"
+          }
+        }
+      },
+      "JsonNode": {
+        "type": "object"
+      },
+      "PaginatedResultsDtoEventDto": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventDto"
+            }
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastPage": {
+            "type": "boolean"
           }
         }
       },
@@ -1704,6 +1994,13 @@
             "format": "date-time"
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "bearerToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   }
