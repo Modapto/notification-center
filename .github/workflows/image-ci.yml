@@ -1,7 +1,7 @@
 name: Docker Image CI - Notification Center
 
 env:
-  DOCKER_IMAGE: user-manager
+  DOCKER_IMAGE: notification-center
 
 on:
   push:
