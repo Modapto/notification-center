@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>modapto</groupId>
 	<artifactId>modapto-notification-center</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.5</version>
 	<name>modapto-notification-center</name>
 	<description>Component to handle notifications, events and assignments of MODAPTO</description>
 	<inceptionYear>2024</inceptionYear>

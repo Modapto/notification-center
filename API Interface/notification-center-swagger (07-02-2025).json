@@ -1,13 +1,13 @@
 {
-  "openapi": "3.0.1",
+  "openapi": "3.0.3",
   "info": {
     "title": "Notifacation Center API",
     "description": "API documentation for Notifacation Center service",
-    "version": "1.0"
+    "version": "0.5"
   },
   "servers": [
     {
-      "url": "http://localhost:8091",
+      "url": "http://services.modapto.atc.gr",
       "description": "Generated server url"
     }
   ],
@@ -1513,11 +1513,14 @@
   },
   "components": {
     "schemas": {
-      "BaseAppResponseString": {
+      "BaseAppResponseMapStringString": {
         "type": "object",
         "properties": {
           "data": {
-            "type": "string"
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "errors": {
             "type": "object"
@@ -1534,14 +1537,11 @@
           }
         }
       },
-      "BaseAppResponseMapStringString": {
+      "BaseAppResponseString": {
         "type": "object",
         "properties": {
           "data": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
+            "type": "string"
           },
           "errors": {
             "type": "object"
