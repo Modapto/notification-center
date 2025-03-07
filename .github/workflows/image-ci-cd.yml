@@ -2,7 +2,7 @@ name: Docker Image CI/CD - Notification Center
 
 env:
   DOCKER_IMAGE: notification-center
-  FFT_CONTAINER: ${{ env.DOCKER_IMAGE }}-fft
+  FFT_CONTAINER: notification-center-fft
 
 on:
   push:
