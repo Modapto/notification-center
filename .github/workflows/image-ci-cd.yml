@@ -39,6 +39,12 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.CI_ORG_TOKEN }}
 
+    - name: Extract version from pom.xml
+      id: get_version
+      run: |
+        VERSION=$(mvn help:evaluate -Dexpression="project.version" -q -DforceStdout)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+
     - name: Build and Push Image with Cache
       uses: docker/build-push-action@v6
       with:
@@ -47,7 +53,7 @@ jobs:
         push: true
         tags: |
           ghcr.io/modapto/${{ env.DOCKER_IMAGE }}:latest
-          ghcr.io/modapto/${{ env.DOCKER_IMAGE }}:0.5
+          ghcr.io/modapto/${{ env.DOCKER_IMAGE }}:${{ env.VERSION }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
         build-args: |
