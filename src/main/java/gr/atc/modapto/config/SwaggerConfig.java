@@ -1,13 +1,14 @@
 package gr.atc.modapto.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.annotation.Value;
-import io.swagger.v3.oas.models.servers.Server;
+
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
 
 @Configuration
 public class SwaggerConfig {
@@ -24,7 +25,7 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("Notifacation Center API")
                         .version(appVersion)
-                        .description("API documentation for Notifacation Center service"))
+                        .description("API documentation for Notification Center Service of MODAPTO"))
                 .openapi("3.0.3")
                 .addServersItem(new Server().url(appUrl))
                 .components(new Components()
