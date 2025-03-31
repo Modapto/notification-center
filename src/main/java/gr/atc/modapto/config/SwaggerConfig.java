@@ -14,6 +14,9 @@ public class SwaggerConfig {
         
     @Value("${build.version}")
     private String appVersion;
+    
+    @Value(value = "${application.url}")
+    private String appUrl;
 
     @Bean
     public OpenAPI openAPIDocumentation() {
@@ -23,6 +26,7 @@ public class SwaggerConfig {
                         .version(appVersion)
                         .description("API documentation for Notifacation Center service"))
                 .openapi("3.0.3")
+                .addServersItem(new Server().url(appUrl))
                 .components(new Components()
                         .addSecuritySchemes("bearerToken", new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)
