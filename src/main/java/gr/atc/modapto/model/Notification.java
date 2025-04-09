@@ -1,7 +1,5 @@
 package gr.atc.modapto.model;
 
-import gr.atc.modapto.enums.NotificationStatus;
-import gr.atc.modapto.enums.NotificationType;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
@@ -19,7 +17,7 @@ public class Notification extends Message {
     private String id;
 
     @Field(type = FieldType.Keyword, name ="notificationType")
-    private NotificationType notificationType;
+    private String notificationType;
 
     @Field(type = FieldType.Keyword, name = "sourceComponent")
     private String sourceComponent;
@@ -31,7 +29,7 @@ public class Notification extends Message {
     private String userId;
 
     @Field(type = FieldType.Keyword, name = "notificationStatus")
-    private NotificationStatus notificationStatus;
+    private String notificationStatus;
 
     @Field(type = FieldType.Keyword, name = "relatedEvent")
     private String relatedEvent;

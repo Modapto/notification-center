@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import gr.atc.modapto.service.interfaces.IEventService;
 import org.modelmapper.MappingException;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.EventMappingsDto;
-import gr.atc.modapto.enums.UserRole;
 import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
 import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.model.Event;
@@ -127,17 +127,14 @@ public class EventService implements IEventService {
     }
 
     /**
-     * Fetch correlated User Roles for a specific Event from DB by EventType, ProductionModule and SmartService
+     * Fetch correlated User Roles for a specific Event from DB by Topic Name
      *
-     * @param eventType: Type of Event
-     * @param productionModule: ID of Production Module
-     * @param smartService: ID of Smart Service
+     * @param topic: Topic Name
      * @return List<UserRole>: list of UserRoles
      */
     @Override
-    public List<UserRole> retrieveUserRolesPerEventType(String eventType, String productionModule,
-            String smartService) {
-        Optional<EventMappings> existingEventMappings = eventMappingsRepository.findByEventTypeAndProductionModuleAndSmartService(eventType, productionModule,smartService);
+    public List<String> retrieveUserRolesPerTopic(String topic) {
+        Optional<EventMappings> existingEventMappings = eventMappingsRepository.findByTopic(topic);
         if (existingEventMappings.isPresent()) {
             return existingEventMappings.get().getUserRoles();
         }
@@ -148,10 +145,9 @@ public class EventService implements IEventService {
      * Delete an Event Mapping in DB if exists
      * 
      * @param mappingId : Event Mapping ID
-     * @return True on success, false on Error
      */
     @Override
-    public boolean deleteEventMappingById(String mappingId) {
+    public void deleteEventMappingById(String mappingId) {
         // Try to locate if event mapping exists
         Optional<EventMappings> existingEventMapping = eventMappingsRepository.findById(mappingId);
         if (existingEventMapping.isEmpty())
@@ -159,6 +155,36 @@ public class EventService implements IEventService {
 
         // Delete the event mapping
         eventMappingsRepository.deleteById(mappingId);
-        return true;
     }
+
+    /**
+     * Update an Event Mapping in DB if exists
+     *
+     * @param eventMapping : Event Mapping
+     */
+    @Override
+    public void updateEventMappingById(EventMappingsDto eventMapping) {
+        // Try to locate if event mapping exists
+        Optional<EventMappings> existingEventMapping = eventMappingsRepository.findById(eventMapping.getId());
+        if (existingEventMapping.isEmpty())
+            throw new DataNotFoundException("Event Mapping with id: " + eventMapping.getId() + " not found in DB");
+
+        // Update User Roles
+        EventMappings updatedEventMapping = updateUserRolesOfEventMapping(existingEventMapping.get(), eventMapping);
+
+        // Delete the event mapping
+        eventMappingsRepository.save(updatedEventMapping);
+    }
+
+    private EventMappings updateUserRolesOfEventMapping(EventMappings existingEventMapping, EventMappingsDto eventMapping) {
+        // Check whether "ALL" is included inside updated eventMapping and keep only this selection
+        if (eventMapping.getUserRoles().contains("ALL"))
+            existingEventMapping.setUserRoles(List.of("ALL"));
+        // Otherwise update the UserRoles
+        else
+            existingEventMapping.setUserRoles(eventMapping.getUserRoles());
+
+        return existingEventMapping;
+    }
+
 }

@@ -1,20 +1,19 @@
 package gr.atc.modapto.model;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.List;
 
 import gr.atc.modapto.dto.AssignmentDto;
 import lombok.*;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-import gr.atc.modapto.enums.AssignmentStatus;
-
-@Data
 @EqualsAndHashCode(callSuper = true)
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Document(indexName = "assignments")
@@ -30,13 +29,10 @@ public class Assignment extends Message {
     private String targetUserId;
 
     @Field(type = FieldType.Keyword, name = "status")
-    private AssignmentStatus status;
+    private String status;
 
-    @Field(type = FieldType.Object, name = "sourceUserComments")
-    private HashMap<LocalDateTime, String> sourceUserComments;
-
-    @Field(type = FieldType.Object, name = "targetUserComments")
-    private HashMap<LocalDateTime, String> targetUserComments;
+    @Field(type = FieldType.Nested, name = "comments")
+    private List<AssignmentComment> comments;
 
     @Field(type = FieldType.Date, name = "timestampUpdated", format = DateFormat.date_hour_minute_second)
     private LocalDateTime timestampUpdated;
@@ -67,7 +63,11 @@ public class Assignment extends Message {
         if (assignmentDto.getProductionModule() != null)
             assignment.setProductionModule(assignmentDto.getProductionModule());
 
-        assignment.setTimestampUpdated(LocalDateTime.now());
+        if (assignmentDto.getComments() != null)
+            assignmentDto.getComments().stream()
+                .map(AssignmentComment::convertToAssignmentComment)
+                .forEach(comment -> assignment.getComments().add(comment));
+
         return assignment;
     }
 }

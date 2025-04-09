@@ -53,5 +53,40 @@
     "name": "build.version",
     "type": "java.lang.String",
     "description": "A description for 'build.version'"
+  },
+  {
+    "name": "use-case.pilot",
+    "type": "java.lang.String",
+    "description": "A description for 'use-case.pilot'"
+  },
+  {
+    "name": "application.url",
+    "type": "java.lang.String",
+    "description": "A description for 'application.url'"
+  },
+  {
+    "name": "spring.elasticsearch.rest.index-settings.number_of_shards",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.elasticsearch.rest.index-settings.number_of_shards'"
+  },
+  {
+    "name": "keycloak.realm",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.realm'"
+  },
+  {
+    "name": "keycloak.auth-server-url",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.auth-server-url'"
+  },
+  {
+    "name": "keycloak.public-client",
+    "type": "java.lang.String",
+    "description": "A description for 'keycloak.public-client'"
+  },
+  {
+    "name": "spring.security.cors.domains",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.security.cors.domains'"
   }
 ]}

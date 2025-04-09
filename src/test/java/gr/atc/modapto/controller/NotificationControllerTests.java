@@ -4,21 +4,31 @@ import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.enums.MessagePriority;
 import gr.atc.modapto.enums.NotificationStatus;
 import gr.atc.modapto.enums.NotificationType;
-import gr.atc.modapto.service.INotificationService;
+import gr.atc.modapto.exception.CustomExceptions;
+import gr.atc.modapto.repository.AssignmentRepository;
+import gr.atc.modapto.repository.EventMappingsRepository;
+import gr.atc.modapto.repository.EventRepository;
+import gr.atc.modapto.repository.NotificationRepository;
+import gr.atc.modapto.service.interfaces.INotificationService;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,34 +38,64 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("local")
+@WebMvcTest(NotificationController.class)
+@ActiveProfiles("test")
 class NotificationControllerTests {
+
+    @Autowired
+    private WebApplicationContext context;
+
+    @MockitoBean
+    private ElasticsearchOperations elasticsearchOperations;
+
+    @MockitoBean
+    private ElasticsearchTemplate elasticsearchTemplate;
+
+    @MockitoBean
+    private NotificationRepository notificationRepository;
+
+    @MockitoBean
+    private AssignmentRepository assignmentRepository;
+
+    @MockitoBean
+    private EventRepository eventRepository;
+
+    @MockitoBean
+    private EventMappingsRepository eventMappingsRepository;
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private INotificationService notificationService;
 
     private static List<NotificationDto> notifications;
     private static NotificationDto testNotification;
     private static Page<NotificationDto> paginatedResults;
 
+    @BeforeEach
+    void setupInit(){
+        mockMvc = MockMvcBuilders
+                .webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
+    }
+
     @BeforeAll
     static void setup(){
         testNotification = NotificationDto.builder()
-                .notificationType(NotificationType.EVENT)
-                .notificationStatus(NotificationStatus.NOT_VIEWED)
+                .notificationType(NotificationType.Event.toString())
+                .notificationStatus(NotificationStatus.Unread.toString())
                 .sourceComponent("Test Component")
                 .productionModule("Test Production Module")
                 .timestamp(LocalDateTime.now())
-                .priority(MessagePriority.MEDIUM)
+                .priority(MessagePriority.Mid.toString())
                 .description("Test")
                 .build();
 
@@ -65,6 +105,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get All Notifications: Success")
+    @WithMockUser
     @Test
     void givenValidRequest_whenGetAllNotifications_thenReturnNotificationList() throws Exception {
         // Given
@@ -80,6 +121,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get All Notifications: Empty List")
+    @WithMockUser
     @Test
     void givenNoNotifications_whenGetAllNotifications_thenReturnEmptyList() throws Exception {
         // Given
@@ -95,6 +137,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get All Notifications: Exception Handling")
+    @WithMockUser
     @Test
     void givenException_whenGetAllNotifications_thenReturnServerError() throws Exception {
         // Given
@@ -109,7 +152,58 @@ class NotificationControllerTests {
                 .andExpect(jsonPath("$.message", is("An unexpected error occurred")));
     }
 
+    @DisplayName("Get Notification by ID: Success")
+    @WithMockUser
+    @Test
+    void givenNotificationID_whenGetNotificationById_thenReturnNotification() throws Exception {
+        // Given
+        when(notificationService.retrieveNotificationById(anyString())).thenReturn(notifications.getFirst());
+
+        // When
+        mockMvc.perform(get("/api/notifications/notificationId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                // Then
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.productionModule", is("Test Production Module")));
+    }
+
+    @DisplayName("Get Notification by ID: Not Found Exception")
+    @WithMockUser
+    @Test
+    void givenNotificationID_whenGetNotificationById_thenReturnNotFound() throws Exception {
+        // Given
+        doThrow(new CustomExceptions.DataNotFoundException("Requested resource not found in DB"))
+                .when(notificationService).retrieveNotificationById(any());
+
+        // When
+        mockMvc.perform(get("/api/notifications/notificationId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                // Then
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Requested resource not found in DB")));
+    }
+
+    @DisplayName("Get Notification by ID: Mapping Exception")
+    @WithMockUser
+    @Test
+    void givenNotificationID_whenGetNotificationById_thenReturnMappingException() throws Exception {
+        // Given
+        doThrow(new CustomExceptions.ModelMappingException("Model Mapping Exception"))
+                .when(notificationService).retrieveNotificationById(any());
+
+        // When
+        mockMvc.perform(get("/api/notifications/notificationId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                // Then
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Internal error in mapping process")));
+    }
+
     @DisplayName("Get Notifications by User ID: Success")
+    @WithMockUser
     @Test
     void givenValidUserId_whenGetNotificationsByUserId_thenReturnNotifications() throws Exception {
         // Given
@@ -125,6 +219,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get Unread Notifications by User ID: Success")
+    @WithMockUser
     @Test
     void givenValidUserId_whenGetUnreadNotificationsByUserId_thenReturnUnreadNotifications() throws Exception {
         // Given
@@ -141,6 +236,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get Notifications by User ID: Exception Handling")
+    @WithMockUser
     @Test
     void givenException_whenGetNotificationsByUserId_thenReturnServerError() throws Exception {
         // Given
@@ -156,6 +252,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get Unread Notifications by User ID: Exception Handling")
+    @WithMockUser
     @Test
     void givenException_whenGetUnreadNotificationsByUserId_thenReturnServerError() throws Exception {
         // Given

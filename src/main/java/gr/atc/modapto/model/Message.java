@@ -2,8 +2,10 @@ package gr.atc.modapto.model;
 
 import java.time.LocalDateTime;
 
-import gr.atc.modapto.enums.MessagePriority;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
@@ -12,7 +14,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Message{
+public class Message {
 
     @Field(type = FieldType.Text, name = "description")
     private String description;
@@ -24,9 +26,5 @@ public class Message{
     private LocalDateTime timestamp;
 
     @Field(type = FieldType.Keyword, name ="priority")
-    private MessagePriority priority;
-
-    @Field(type = FieldType.Keyword, name ="pilot")
-    private String pilot;
-
+    private String priority;
 }

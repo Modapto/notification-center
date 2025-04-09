@@ -1,9 +1,14 @@
 package gr.atc.modapto.service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+
+import gr.atc.modapto.service.interfaces.IAssignmentService;
+import gr.atc.modapto.service.interfaces.INotificationService;
 
 import org.modelmapper.MappingException;
 import org.modelmapper.ModelMapper;
@@ -26,6 +31,7 @@ import gr.atc.modapto.enums.NotificationType;
 import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
 import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.model.Assignment;
+import gr.atc.modapto.model.AssignmentComment;
 import gr.atc.modapto.repository.AssignmentRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @AllArgsConstructor
 @Slf4j
-public class AssignmentService implements IAssignmentService{
+public class AssignmentService implements IAssignmentService {
 
     private final INotificationService notificationService;
 
@@ -76,11 +82,11 @@ public class AssignmentService implements IAssignmentService{
     @Override
     public Page<AssignmentDto> retrieveAssignmentsPerUserId(String userId, String assignmentType, Pageable pageable) {
         try{
-            // Retrieve results according to the assignment type (RECEIVED, REQUESTED or null)
+            // Retrieve results according to the assignment type (Received, Requested or null)
             if (assignmentType == null)
                 // Null assignmentType
                 return assignmentRepository.findBySourceUserIdOrTargetUserId(userId, userId, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
-            else if (assignmentType.equals(AssignmentType.RECEIVED.toString()))
+            else if (assignmentType.equals(AssignmentType.Received.toString()))
                 // Received assignments case
                 return assignmentRepository.findByTargetUserId(userId, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
             else
@@ -104,11 +110,11 @@ public class AssignmentService implements IAssignmentService{
     @Override
     public Page<AssignmentDto> retrieveAssignmentsPerUserIdAndStatus(String userId, String assignmentType, String status, Pageable pageable) {
         try{
-            // Retrieve results according to the assignment type (RECEIVED, REQUESTED or null)
+            // Retrieve results according to the assignment type (Received, Requested or null)
             if (assignmentType == null)
                 // Null assignmentType
                 return assignmentRepository.findByStatusAndSourceUserIdOrTargetUserId(status, userId, userId, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
-            else if (assignmentType.equals(AssignmentType.RECEIVED.toString()))
+            else if (assignmentType.equals(AssignmentType.Received.toString()))
                 // Received assignments case
                 return assignmentRepository.findByTargetUserIdAndStatus(userId, status, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
             else
@@ -132,6 +138,12 @@ public class AssignmentService implements IAssignmentService{
             Optional<Assignment> existingAssignment = assignmentRepository.findById(assignmentId);
             if (existingAssignment.isEmpty())
                 throw new DataNotFoundException("Assignment with id: " + assignmentId + " not found in DB");
+
+            // Sort Comments by Datetime
+            List<AssignmentComment> sortedComments = new ArrayList<>(existingAssignment.get().getComments());
+            sortedComments.sort(Comparator.comparing(AssignmentComment::getDatetime).reversed());
+            existingAssignment.get().setComments(sortedComments);
+
             return modelMapper.map(existingAssignment.get(), AssignmentDto.class);
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
@@ -139,12 +151,12 @@ public class AssignmentService implements IAssignmentService{
     }
 
     @Override
-    public void updateAssignment(String assignmentId, AssignmentDto assignmentDto) {
+    public void updateAssignment(AssignmentDto assignmentDto) {
         try{
             // Try to locate if assignment exists
-            Optional<Assignment> existingAssignment = assignmentRepository.findById(assignmentId);
+            Optional<Assignment> existingAssignment = assignmentRepository.findById(assignmentDto.getId());
             if (existingAssignment.isEmpty())
-                throw new DataNotFoundException("Assignment with id: " + assignmentId + " not found in DB");
+                throw new DataNotFoundException("Assignment with id: " + assignmentDto.getId() + " not found in DB");
 
             // Update assignment and save it to repository
             Assignment newAssignment = Assignment.updateExistingAssignment(existingAssignment.get(), assignmentDto);
@@ -172,13 +184,8 @@ public class AssignmentService implements IAssignmentService{
             // Update assignment comments
             Assignment updatedAssignment = existingAssignment.get();
 
-            // Check if Source or Target user commented
             LocalDateTime timeOfLastUpdate = LocalDateTime.now();
-            if (assignmentComment.getSourceUserComment() != null)
-                updatedAssignment.getSourceUserComments().put(timeOfLastUpdate, assignmentComment.getSourceUserComment());
-            else
-                updatedAssignment.getTargetUserComments().put(timeOfLastUpdate, assignmentComment.getTargetUserComment());
-
+            updatedAssignment.getComments().add(AssignmentComment.convertToAssignmentComment(assignmentComment));
             updatedAssignment.setTimestampUpdated(timeOfLastUpdate);
             assignmentRepository.save(updatedAssignment);
         } catch (MappingException e) {
@@ -197,9 +204,7 @@ public class AssignmentService implements IAssignmentService{
         try {
             // Create Assignment and set the initial fields
             Assignment assignment = modelMapper.map(assignmentDto, Assignment.class);
-            assignment.setSourceUserComments(new HashMap<>());
-            assignment.setTargetUserComments(new HashMap<>());
-            assignment.setStatus(AssignmentStatus.OPEN);
+            assignment.setStatus(AssignmentStatus.Open.toString().toString());
             assignment.setTimestamp(LocalDateTime.now());
             assignment.setTimestampUpdated(LocalDateTime.now());
             return assignmentRepository.save(assignment).getId();
@@ -220,8 +225,8 @@ public class AssignmentService implements IAssignmentService{
             try {
                 // Create the notification
                 NotificationDto assignmentNotification = NotificationDto.builder()
-                        .notificationType(NotificationType.ASSIGNMENT)
-                        .notificationStatus(NotificationStatus.NOT_VIEWED)
+                        .notificationType(NotificationType.Assignment.toString())
+                        .notificationStatus(NotificationStatus.Unread.toString().toString())
                         .productionModule(assignment.getProductionModule())
                         .userId(assignment.getTargetUserId())
                         .smartService(null)

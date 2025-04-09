@@ -1,4 +1,4 @@
-package gr.atc.modapto.service;
+package gr.atc.modapto.service.interfaces;
 
 import java.util.List;
 
@@ -7,7 +7,6 @@ import org.springframework.data.domain.Pageable;
 
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.EventMappingsDto;
-import gr.atc.modapto.enums.UserRole;
 
 public interface IEventService {
 
@@ -21,7 +20,9 @@ public interface IEventService {
 
     List<EventMappingsDto> retrieveAllEventMappings();
 
-    List<UserRole> retrieveUserRolesPerEventType(String eventType, String productionModule, String smartService);
+    List<String> retrieveUserRolesPerTopic(String topic);
 
-    boolean deleteEventMappingById(String mappingId);
+    void deleteEventMappingById(String mappingId);
+
+    void updateEventMappingById(EventMappingsDto eventMapping);
 }

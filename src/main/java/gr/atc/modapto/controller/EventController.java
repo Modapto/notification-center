@@ -3,25 +3,20 @@ package gr.atc.modapto.controller;
 import java.util.Arrays;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.EventMappingsDto;
 import gr.atc.modapto.dto.PaginatedResultsDto;
-import gr.atc.modapto.service.IEventService;
+import gr.atc.modapto.service.interfaces.IEventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -34,6 +29,7 @@ import lombok.AllArgsConstructor;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/api/events")
+@Tag(name="Event Controller", description = "Manage events and event mappings for MODAPTO system")
 public class EventController {
 
     private final IEventService eventService;
@@ -122,20 +118,41 @@ public class EventController {
     /**
      * Delete an event mapping by ID
      *
-     * @param assignmentId: Id of evennt mapping
+     * @param mappingId: Id of event mapping
      * @return Message of success or error
      */
     @Operation(summary = "Delete an assignment by ID" , security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Event mapping deleted successfully!"),
+            @ApiResponse(responseCode = "200", description = "Event mapping deleted successfully"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
-            @ApiResponse(responseCode = "417", description = "Event mapping with id [ID] not found in DB")
+            @ApiResponse(responseCode = "404", description = "Event mapping with id [ID] not found in DB")
     })
     @DeleteMapping("/mappings/{mappingId}")
-    public ResponseEntity<BaseAppResponse<String>> deleteAssignmentById(@PathVariable String mappingId) {
+    public ResponseEntity<BaseAppResponse<String>> deleteEventMappingById(@PathVariable String mappingId) {
         eventService.deleteEventMappingById(mappingId);
-        return new ResponseEntity<>(BaseAppResponse.success(null, "Event mapping deleted successfully!"), HttpStatus.OK);
+        return new ResponseEntity<>(BaseAppResponse.success(null, "Event mapping deleted successfully"), HttpStatus.OK);
+    }
+
+    /**
+     * Update an Event Mapping
+     *
+     * @param mappingId: Id of event mapping
+     * @return Message of success or error
+     */
+    @Operation(summary = "Update an Event Mapping" , security = @SecurityRequirement(name = "bearerToken"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Event mapping updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Validation Error"),
+            @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
+            @ApiResponse(responseCode = "404", description = "Event mapping with id [ID] not found in DB")
+    })
+    @PutMapping("/mappings/{mappingId}")
+    public ResponseEntity<BaseAppResponse<String>> updateEventMappingById(@PathVariable String mappingId, @RequestBody @Valid EventMappingsDto eventMapping) {
+        eventMapping.setId(mappingId);
+        eventService.updateEventMappingById(eventMapping);
+        return new ResponseEntity<>(BaseAppResponse.success(null, "Event mapping updated successfully"), HttpStatus.OK);
     }
 
     /**

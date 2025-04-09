@@ -16,11 +16,6 @@
           "description": "Production module associated with the event",
           "minLength": 1
       },
-      "pilot": {
-          "type": "string", 
-          "description": "Pilot associated with the event",
-          "minLength": 1
-      },
       "timestamp": {
           "type": "string",
           "format": "date-time",
@@ -29,7 +24,7 @@
       "priority": {
           "type": "string",
           "description": "Priority of the message",
-          "enum": ["LOW", "MEDIUM", "HIGH"]
+          "enum": ["Low", "Mid", "High"]
       },
       "eventType": {
           "type": "string",
@@ -52,6 +47,6 @@
           "description": "Results of the event"
       }
   },
-  "required": ["productionModule", "pilot", "priority"],
+  "required": ["productionModule", "topic", "priority"],
   "additionalProperties": false
 }

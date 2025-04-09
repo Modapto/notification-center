@@ -15,6 +15,7 @@ services:
         - USER_MANAGER_URL=http://user-manager:8093
         - KAFKA_BROKERS_URL=localhost:9092
         - KAFKA_TOPICS=${KAFKA_TOPICS}
+        - CORS_DOMAINS=http://localhost:3000
       ports:
         - ${APP_PORT}:${APP_PORT}
       networks:

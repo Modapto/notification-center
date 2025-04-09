@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import gr.atc.modapto.enums.MessagePriority;
 import gr.atc.modapto.validation.ValidPriority;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -20,6 +20,7 @@ import jakarta.validation.constraints.NotNull;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = "Event Object Representation", title = "Event")
 public class EventDto {
     @JsonProperty("eventId")
     private String id;
@@ -31,10 +32,6 @@ public class EventDto {
     @JsonProperty("productionModule")
     private String productionModule;
 
-    @NotEmpty(message = "Pilot cannot be empty")
-    @JsonProperty("pilot")
-    private String pilot;
-
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @JsonProperty("timestamp")
     private LocalDateTime timestamp;
@@ -42,7 +39,7 @@ public class EventDto {
     @NotNull(message = "Priority cannot be empty")
     @ValidPriority
     @JsonProperty("priority")
-    private MessagePriority priority;
+    private String priority;
 
     @JsonProperty("eventType")
     private String eventType;
@@ -53,6 +50,7 @@ public class EventDto {
     @JsonProperty("smartService")
     private String smartService;
 
+    @NotNull(message = "Topic cannot be empty")
     @JsonProperty("topic")
     private String topic;
 

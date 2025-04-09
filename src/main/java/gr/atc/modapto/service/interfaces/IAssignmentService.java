@@ -1,4 +1,4 @@
-package gr.atc.modapto.service;
+package gr.atc.modapto.service.interfaces;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -17,7 +17,7 @@ public interface IAssignmentService {
 
     AssignmentDto retrieveAssignmentById(String assignmentId);
 
-    void updateAssignment(String assignmentId, AssignmentDto assignmentDto);
+    void updateAssignment(AssignmentDto assignmentDto);
 
     String storeAssignment(AssignmentDto assignmentDto);
 

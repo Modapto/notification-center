@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import gr.atc.modapto.service.interfaces.INotificationService;
 import org.modelmapper.MappingException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,15 +22,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import gr.atc.modapto.controller.BaseAppResponse;
 import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.enums.NotificationStatus;
-import gr.atc.modapto.enums.UserRole;
 import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
 import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.model.Notification;
@@ -87,7 +85,7 @@ public class NotificationService implements INotificationService {
 
     /**
      * Retrieve all notifications
-     * 
+     *
      * @param pageable : Pagination Attributes
      * @return List<NotificationDto>
      */
@@ -127,7 +125,7 @@ public class NotificationService implements INotificationService {
     @Override
     public List<NotificationDto> retrieveUnreadNotificationsPerUserId(String userId) {
         try{
-            Page<Notification> notificationsPage = notificationRepository.findByUserIdAndNotificationStatus(userId, NotificationStatus.NOT_VIEWED.toString(), Pageable.unpaged());
+            Page<Notification> notificationsPage = notificationRepository.findByUserIdAndNotificationStatus(userId, NotificationStatus.Unread.toString(), Pageable.unpaged());
             List<Notification> notifications = notificationsPage.getContent();
             return notifications.stream().map(notification -> modelMapper.map(notification, NotificationDto.class)).toList();
         } catch (MappingException e) {
@@ -175,22 +173,21 @@ public class NotificationService implements INotificationService {
 
             HttpEntity<BaseAppResponse<List<String>>> entity = new HttpEntity<>(headers);
             ResponseEntity<BaseAppResponse<List<String>>> response = restTemplate.exchange(
-                    userManagerUrl.concat("/api/users/ids/pilot/").concat(pilot.toUpperCase()),
+                    userManagerUrl.concat("/api/users/ids/pilot/").concat(pilot),
                     HttpMethod.GET,
                     entity,
                     new ParameterizedTypeReference<>() {
                     }
             );
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                return Objects.requireNonNull(response.getBody()).getData();
-            }
-            return Collections.emptyList();
-        } catch (HttpClientErrorException | HttpServerErrorException e) {
-            log.error("HTTP error during retrieving user ids for specific pilot: Error: {}", e.getMessage());
-            return Collections.emptyList();
+            return Optional.of(response)
+                    .filter(resp -> resp.getStatusCode().is2xxSuccessful())
+                    .map(ResponseEntity::getBody)
+                    .filter(body -> body.getData() != null)
+                    .map(BaseAppResponse::getData)
+                    .orElse(Collections.emptyList());
         } catch (RestClientException e) {
-            log.error("Rest Client error during retrieving user ids for specific pilot: Error: {}", e.getMessage());
+            log.error("Unable to retrieve user IDs for pilot {} -  Error: {}", pilot, e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -202,7 +199,7 @@ public class NotificationService implements INotificationService {
      * @return List<String> : List with user Ids
      */
     @Override
-    public List<String> retrieveUserIdsPerRoles(List<UserRole> roles){
+    public List<String> retrieveUserIdsPerRoles(List<String> roles){
         // Retrieve Component's JWT Token - Client credentials
         String token = retrieveComponentJwtToken();
         if (token == null){
@@ -219,7 +216,7 @@ public class NotificationService implements INotificationService {
         roles.forEach(role -> {
             try {
                 ResponseEntity<BaseAppResponse<List<String>>> response = restTemplate.exchange(
-                        userManagerUrl.concat("/api/users/ids/role/").concat(role.toString()),
+                        userManagerUrl.concat("/api/users/ids/role/").concat(role),
                         HttpMethod.GET,
                         entity,
                         new ParameterizedTypeReference<>() {
@@ -229,10 +226,8 @@ public class NotificationService implements INotificationService {
                 if (response.getStatusCode().is2xxSuccessful()) {
                     userIds.addAll(Objects.requireNonNull(Objects.requireNonNull(response.getBody()).getData()));
                 }
-            } catch (HttpClientErrorException | HttpServerErrorException e) {
-                log.error("HTTP error during retrieving user for role {}: Error: {}", role, e.getMessage());
             } catch (RestClientException e) {
-                log.error("Rest Client error during retrieving user role {}: Error: {}", role, e.getMessage());
+                log.error("Unable to locate User IDs for Role: {} - Error: {}", role, e.getMessage());
             }
         });
         return userIds;
@@ -261,19 +256,14 @@ public class NotificationService implements INotificationService {
                     new ParameterizedTypeReference<>() {
                     }
             );
-            
-            if (response.getStatusCode().is2xxSuccessful()) {
-                Map<String, Object> responseBody = response.getBody();
-                if (responseBody == null || responseBody.get(TOKEN) == null) {
-                    return null;
-                }
-                return responseBody.get(TOKEN).toString();
-            }
-            return null;
-        } catch (HttpClientErrorException | HttpServerErrorException e) {
-            log.error("HTTP error during authenticating the client: Error: {}", e.getMessage());
-            return null;
-        } catch (RestClientException e) {
+
+            return Optional.of(response)
+                    .filter(resp -> resp.getStatusCode().is2xxSuccessful())
+                    .map(ResponseEntity::getBody)
+                    .filter(body -> body.get(TOKEN) != null)
+                    .map(body -> body.get(TOKEN).toString())
+                    .orElse(null);
+        }  catch (RestClientException e) {
             log.error("Rest Client error during authenticating the client: Error: {}", e.getMessage());
             return null;
         }

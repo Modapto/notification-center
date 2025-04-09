@@ -27,6 +27,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -39,6 +40,7 @@ import gr.atc.modapto.model.Notification;
 import gr.atc.modapto.repository.NotificationRepository;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles(profiles = "test")
 class NotificationServiceTests {
 
     @Mock
@@ -74,12 +76,12 @@ class NotificationServiceTests {
             .id("1")
             .timestamp(LocalDateTime.now())
             .userId("user1")
-            .notificationStatus(NotificationStatus.NOT_VIEWED)
+            .notificationStatus(NotificationStatus.Unread.toString())
             .description("Test Notification")
             .build();
 
         notification = new Notification();
-        notification.setNotificationStatus(NotificationStatus.NOT_VIEWED);
+        notification.setNotificationStatus(NotificationStatus.Unread.toString());
         notification.setId("1");
         notification.setUserId("user1");
         notification.setTimestamp(LocalDateTime.now());

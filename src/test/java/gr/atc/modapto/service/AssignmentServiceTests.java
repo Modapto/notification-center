@@ -1,6 +1,7 @@
 package gr.atc.modapto.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -10,6 +11,9 @@ import java.util.concurrent.ExecutionException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import gr.atc.modapto.model.AssignmentComment;
+import gr.atc.modapto.service.interfaces.INotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,8 +46,10 @@ import gr.atc.modapto.enums.MessagePriority;
 import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
 import gr.atc.modapto.model.Assignment;
 import gr.atc.modapto.repository.AssignmentRepository;
+import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles(profiles = "test")
 class AssignmentServiceTests {
 
     @Mock
@@ -72,23 +78,38 @@ class AssignmentServiceTests {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
+        AssignmentCommentDto assignmentCommentDto = AssignmentCommentDto.builder().comment("System Comment").build();
+
+        AssignmentCommentDto oldAssignmentCommentDto = AssignmentCommentDto.builder().comment("Old System Comment").datetime(LocalDateTime.now().minusDays(1)).build();
+
+        AssignmentComment assignmentComment = AssignmentComment.convertToAssignmentComment(assignmentCommentDto);
+        AssignmentComment oldAssignmentComment = AssignmentComment.convertToAssignmentComment(oldAssignmentCommentDto);
+
+        List<AssignmentCommentDto> commentsDto = new ArrayList<>();
+        commentsDto.add(assignmentCommentDto);
+        commentsDto.add(oldAssignmentCommentDto);
+
+        List<AssignmentComment> comments = new ArrayList<>();
+        comments.add(oldAssignmentComment);
+        comments.add(assignmentComment);
+
         assignmentDto = new AssignmentDto();
         assignmentDto.setId("1");
         assignmentDto.setDescription("Test Assignment");
         assignmentDto.setProductionModule("TestModule");
         assignmentDto.setTargetUserId("testUser");
-        assignmentDto.setPriority(MessagePriority.HIGH);
-        assignmentDto.setStatus(AssignmentStatus.OPEN);
+        assignmentDto.setComments(commentsDto);
+        assignmentDto.setPriority(MessagePriority.High.toString());
+        assignmentDto.setStatus(AssignmentStatus.Open.toString());
 
         assignment = new Assignment();
         assignment.setId("1");
         assignment.setDescription("Test Assignment");
         assignment.setProductionModule("TestModule");
-        assignment.setSourceUserComments(new HashMap<>());
-        assignment.setTargetUserComments(new HashMap<>());
+        assignment.setComments(comments);
         assignment.setTargetUserId("testUser");
-        assignment.setStatus(AssignmentStatus.OPEN);
-        assignmentDto.setPriority(MessagePriority.HIGH);
+        assignment.setStatus(AssignmentStatus.Open.toString());
+        assignmentDto.setPriority(MessagePriority.High.toString());
         assignment.setTimestamp(LocalDateTime.now());
     }
 
@@ -133,7 +154,7 @@ class AssignmentServiceTests {
         when(modelMapper.map(any(Assignment.class), eq(AssignmentDto.class))).thenReturn(assignmentDto);
 
         // When
-        Page<AssignmentDto> result = assignmentService.retrieveAssignmentsPerUserIdAndStatus("testUser", AssignmentType.RECEIVED.toString(), AssignmentStatus.OPEN.toString().toUpperCase(), Pageable.unpaged());
+        Page<AssignmentDto> result = assignmentService.retrieveAssignmentsPerUserIdAndStatus("testUser", AssignmentType.Received.toString(), AssignmentStatus.Open.toString(), Pageable.unpaged());
 
         // Then
         assertNotNull(result);
@@ -154,6 +175,8 @@ class AssignmentServiceTests {
         // Then
         assertNotNull(result);
         assertEquals("1", result.getId());
+        assertEquals("System Comment", result.getComments().getFirst().getComment());
+        assertEquals("Old System Comment", result.getComments().getLast().getComment());
     }
 
     @DisplayName("Retrieve Assignment by ID: Not Found")
@@ -189,11 +212,11 @@ class AssignmentServiceTests {
     @Test
     void givenExistingAssignment_whenUpdateAssignment_thenSaveUpdatedAssignment() {
         // Given
-        when(assignmentRepository.findById("1")).thenReturn(Optional.of(assignment));
+        when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
         when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
 
         // When
-        assignmentService.updateAssignment("1", assignmentDto);
+        assignmentService.updateAssignment(assignmentDto);
 
         // Then
         verify(assignmentRepository, times(1)).save(any(Assignment.class));
@@ -203,25 +226,24 @@ class AssignmentServiceTests {
     @DisplayName("Update Assignment: Not Found")
     void givenNonExistentAssignment_whenUpdateAssignment_thenThrowDataNotFoundException() {
         // When
-        when(assignmentRepository.findById("invalid")).thenReturn(Optional.empty());
+        when(assignmentRepository.findById(anyString())).thenReturn(Optional.empty());
 
         DataNotFoundException exception = assertThrows(DataNotFoundException.class, () -> {
-            assignmentService.updateAssignment("invalid", assignmentDto);
+            assignmentService.updateAssignment(assignmentDto);
         });
 
         // Then
-        assertEquals("Assignment with id: invalid not found in DB", exception.getMessage());
+        assertEquals("Assignment with id: 1 not found in DB", exception.getMessage());
     }
 
     @DisplayName("Update Assignment Comments: Success")
     @Test
     void givenExistingAssignment_whenUpdateAssignmentComments_thenSaveUpdatedComments() {
         // Given
-        AssignmentCommentDto commentDto = new AssignmentCommentDto();
-        commentDto.setSourceUserComment("Test comment");
+        AssignmentCommentDto commentDto = AssignmentCommentDto.builder().comment("Test comment").build();
 
         // When
-        when(assignmentRepository.findById("1")).thenReturn(Optional.of(assignment));
+        when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
 
         assignmentService.updateAssignmentComments("1", commentDto);
 
@@ -233,8 +255,7 @@ class AssignmentServiceTests {
     @Test
     void givenNonExistentAssignment_whenUpdateAssignmentComments_thenThrowDataNotFoundException() {
         // Given
-        AssignmentCommentDto commentDto = new AssignmentCommentDto();
-        commentDto.setSourceUserComment("This is a comment");
+        AssignmentCommentDto commentDto = AssignmentCommentDto.builder().comment("Test comment").build();
 
         // When
         when(assignmentRepository.findById("invalid")).thenReturn(Optional.empty());

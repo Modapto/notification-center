@@ -1,7 +1,12 @@
 package gr.atc.modapto.controller;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import gr.atc.modapto.dto.AssignmentCommentDto;
 import gr.atc.modapto.dto.AssignmentDto;
 import gr.atc.modapto.dto.PaginatedResultsDto;
-import gr.atc.modapto.service.IAssignmentService;
+import gr.atc.modapto.service.interfaces.IAssignmentService;
 import gr.atc.modapto.util.JwtUtils;
 import gr.atc.modapto.validation.ValidAssignmentStatus;
 import gr.atc.modapto.validation.ValidAssignmentType;
@@ -33,6 +38,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @Validated
 @Slf4j
+@Tag(name="Assignment Controller", description = "Manage assignments of users")
 public class AssignmentController {
 
     private final IAssignmentService assignmentService;
@@ -156,7 +163,7 @@ public class AssignmentController {
             @ApiResponse(responseCode = "200", description = "Assignment retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
-            @ApiResponse(responseCode = "417", description = "Assignment with id [ID] not found in DB")
+            @ApiResponse(responseCode = "404", description = "Assignment with id [ID] not found in DB")
     })
     @GetMapping("/{assignmentId}")
     public ResponseEntity<BaseAppResponse<AssignmentDto>> getAssignmentById(@PathVariable String assignmentId) {
@@ -181,6 +188,11 @@ public class AssignmentController {
     public ResponseEntity<BaseAppResponse<String>> createAssignment(@RequestBody AssignmentDto assignmentDto, @AuthenticationPrincipal Jwt jwt) {
         // Add current user's ID in message
         assignmentDto.setSourceUserId(JwtUtils.extractUserId(jwt));
+
+        // Generate System Message
+        AssignmentCommentDto systemComment = new AssignmentCommentDto();
+        systemComment.setComment("Task assignment has been initiated");
+        assignmentDto.setComments(List.of(systemComment));
 
         // Store Assignment in DB
         String assignmentId = assignmentService.storeAssignment(assignmentDto);
@@ -220,8 +232,36 @@ public class AssignmentController {
     })
     @PutMapping("/{assignmentId}")
     public ResponseEntity<BaseAppResponse<String>> updateAssignment(@PathVariable String assignmentId, @RequestBody AssignmentDto assignmentDto) {
-        assignmentService.updateAssignment(assignmentId, assignmentDto);
+        // Check whether assignment status has been changed
+        assignmentDto.setId(assignmentId);
+        AssignmentDto updatedAssignment = generateSystemComments(assignmentDto);
+        assignmentService.updateAssignment(updatedAssignment);
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment updated successfully!"), HttpStatus.OK);
+    }
+
+    /**
+     * Generate system comments for assignment status and priority changes
+     *
+     * @param assignmentDto: DTO of assignment
+     * @return AssignmentDto : Updated assignment with system comments
+     */
+    private AssignmentDto generateSystemComments(AssignmentDto assignmentDto) {
+        AssignmentCommentDto systemComment = AssignmentCommentDto.builder().build();
+        List<AssignmentCommentDto> comments = assignmentDto.getComments() != null ? assignmentDto.getComments() : new ArrayList<>();
+        // Check whether assignment status has been changed
+        if (assignmentDto.getStatus() != null){
+            systemComment.setComment("Task status updated to '" + assignmentDto.getStatus() + "'");
+            comments.add(systemComment);
+        }
+
+        // Check whether assignment priority has been changed
+        if (assignmentDto.getPriority() != null) {
+            systemComment.setComment("Task prioity updated to '" + assignmentDto.getPriority() + "'");
+            comments.add(systemComment);
+        }
+
+        assignmentDto.setComments(comments);
+        return assignmentDto;
     }
 
     /**
@@ -239,7 +279,8 @@ public class AssignmentController {
             @ApiResponse(responseCode = "500", description = "Unable to create and store assignment")
     })
     @PutMapping("/{assignmentId}/comments")
-    public ResponseEntity<BaseAppResponse<String>> updateAssignmentComments(@PathVariable String assignmentId, @RequestBody AssignmentCommentDto assignmentComment) {
+    public ResponseEntity<BaseAppResponse<String>> updateAssignmentComments(@PathVariable String assignmentId, @RequestBody @Valid AssignmentCommentDto assignmentComment) {
+        assignmentComment.setDatetime(LocalDateTime.now().withNano(0));
         assignmentService.updateAssignmentComments(assignmentId, assignmentComment);
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment comments updated successfully!"), HttpStatus.OK);
     }
@@ -255,7 +296,7 @@ public class AssignmentController {
             @ApiResponse(responseCode = "200", description = "Assignment deleted successfully!"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
-            @ApiResponse(responseCode = "417", description = "Assignment with id [ID] not found in DB")
+            @ApiResponse(responseCode = "404", description = "Assignment with id [ID] not found in DB")
     })
     @DeleteMapping("/{assignmentId}")
     public ResponseEntity<BaseAppResponse<String>> deleteAssignmentById(@PathVariable String assignmentId) {

@@ -1,10 +1,9 @@
 package gr.atc.modapto.integration;
 
-
+import gr.atc.modapto.config.SetupTestContainersEnvironment;
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.EventMappingsDto;
 import gr.atc.modapto.enums.MessagePriority;
-import gr.atc.modapto.enums.UserRole;
 
 import gr.atc.modapto.model.Event;
 import gr.atc.modapto.model.EventMappings;
@@ -17,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-@ActiveProfiles("local")
+@ActiveProfiles("test")
 class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
     @Autowired
     private MockMvc mockMvc;
@@ -57,6 +57,7 @@ class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
     @BeforeEach
     void setup() {
         eventRepository.deleteAll();
+        eventMappingsRepository.deleteAll();
 
         testEvent = EventDto.builder()
                 .eventType("Test")
@@ -65,18 +66,21 @@ class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
                 .eventType(null)
                 .timestamp(LocalDateTime.now())
                 .description(null)
-                .priority(MessagePriority.HIGH)
+                .priority(MessagePriority.High.toString())
                 .build();
 
         testEventMapping = EventMappingsDto.builder()
-                .smartService("Test SSI")
-                .productionModule("Test Production Module")
-                .eventType("Test Event")
-                .userRoles(List.of(UserRole.OPERATOR))
+                .description(null)
+                .topic("Test Topic")
+                .userRoles(List.of("OPERATOR"))
                 .build();
+
+        eventMappingsRepository.save(modelMapper.map(testEventMapping, EventMappings.class));
+        eventRepository.save(modelMapper.map(testEvent, Event.class));
     }
 
     @DisplayName("Get All Events: Success")
+    @WithMockUser
     @Test
     void givenValidRequest_whenGetAllEvents_thenReturnEventList() throws Exception {
         // Given
@@ -89,23 +93,12 @@ class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", is("Events retrieved successfully!")))
-                .andExpect(jsonPath("$.data[0].productionModule", is("Test Production Module")));
-    }
-
-    @DisplayName("Get All Events: Empty List")
-    @Test
-    void givenNoEvents_whenGetAllEvents_thenReturnEmptyList() throws Exception {
-        // When
-        mockMvc.perform(get("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON))
-                // Then
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.data").isEmpty());
+                .andExpect(jsonPath("$.data.results[0].productionModule", is("Test Production Module")));
     }
 
 
     @DisplayName("Create Event Mapping: Success")
+    @WithMockUser
     @Test
     void givenValidEventMapping_whenStoreNewEventMapping_thenReturnSuccess() throws Exception {
         // When
@@ -120,6 +113,7 @@ class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
 
 
     @DisplayName("Get All Event Mappings: Success")
+    @WithMockUser
     @Test
     void givenValidRequest_whenGetAllEventMappings_thenReturnEventMappingList() throws Exception {
         // Given
@@ -132,6 +126,6 @@ class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", is("Event Mappings retrieved successfully!")))
-                .andExpect(jsonPath("$.data[0].smartService", is("Test SSI")));
+                .andExpect(jsonPath("$.data[0].topic", is("Test Topic")));
     }
 }

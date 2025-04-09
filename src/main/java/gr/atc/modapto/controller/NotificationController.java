@@ -3,6 +3,9 @@ package gr.atc.modapto.controller;
 import java.util.Arrays;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.dto.PaginatedResultsDto;
-import gr.atc.modapto.service.INotificationService;
+import gr.atc.modapto.service.interfaces.INotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -27,6 +30,7 @@ import lombok.AllArgsConstructor;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/api/notifications")
+@Tag(name="Notification Controller", description = "Manage notifications for MODAPTO system")
 public class NotificationController {
 
     private final INotificationService notificationService;
@@ -44,7 +48,10 @@ public class NotificationController {
      */
     @Operation(summary = "Retrieve all Notifications", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS),
+            @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS, content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = BaseAppResponse.class,
+                            subTypes = {PaginatedResultsDto.class, NotificationDto.class},
+                            description = "BaseAppResponse containing PaginatedResultDto of NotificationDto"))),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
             @ApiResponse(responseCode = "404", description = "Invalid sort attributes")
@@ -134,12 +141,12 @@ public class NotificationController {
      *
      * @return NotificationDto : Notification if exists
      */
-    @Operation(summary = "Retrieve Notification By Id", security = @SecurityRequirement(name = "bearerToken"))
+    @Operation(summary = "Retrieve Notification By ID", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
-            @ApiResponse(responseCode = "417", description = "Notification with id [ID] not found in DB")
+            @ApiResponse(responseCode = "404", description = "Notification with id [ID] not found in DB")
     })
     @GetMapping("/{notificationId}")
     public ResponseEntity<BaseAppResponse<NotificationDto>> getNotificationById(@PathVariable String notificationId) {

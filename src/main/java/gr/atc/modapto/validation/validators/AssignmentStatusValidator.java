@@ -1,6 +1,7 @@
-package gr.atc.modapto.validation;
+package gr.atc.modapto.validation.validators;
 
 import gr.atc.modapto.enums.AssignmentStatus;
+import gr.atc.modapto.validation.ValidAssignmentStatus;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import org.apache.commons.lang3.EnumUtils;
