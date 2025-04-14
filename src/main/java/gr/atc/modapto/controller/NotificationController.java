@@ -12,11 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.dto.PaginatedResultsDto;
@@ -46,16 +43,17 @@ public class NotificationController {
      * @param isAscending: ASC or DESC
      * @return PaginatedResultsDto<NotificationDto> : Notifications with pagination
      */
-    @Operation(summary = "Retrieve all Notifications", security = @SecurityRequirement(name = "bearerToken"))
+    @Operation(summary = "Retrieve all Notifications for Super-Admins", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS, content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = BaseAppResponse.class,
                             subTypes = {PaginatedResultsDto.class, NotificationDto.class},
                             description = "BaseAppResponse containing PaginatedResultDto of NotificationDto"))),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
-            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. You don't have the rights to access the resource or check the JWT and CSRF Tokens"),
             @ApiResponse(responseCode = "404", description = "Invalid sort attributes")
     })
+    @PreAuthorize(value = "hasRole('SUPER_ADMIN')")
     @GetMapping
     public ResponseEntity<BaseAppResponse<PaginatedResultsDto<NotificationDto>>> getAllNotifications(
         @RequestParam(required = false, defaultValue = "0") int page,
@@ -151,6 +149,24 @@ public class NotificationController {
     @GetMapping("/{notificationId}")
     public ResponseEntity<BaseAppResponse<NotificationDto>> getNotificationById(@PathVariable String notificationId) {
         return new ResponseEntity<>(BaseAppResponse.success(notificationService.retrieveNotificationById(notificationId), NOTIFICATION_SUCCESS), HttpStatus.OK);
+    }
+
+    /**
+     * Update Notification Status by ID (From Unread/To Read)
+     *
+     * @return Success message
+     */
+    @Operation(summary = "Update notification status command of a specific Notification (From Unread to Read)", security = @SecurityRequirement(name = "bearerToken"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Notification status updated successfully"),
+            @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
+            @ApiResponse(responseCode = "404", description = "Notification with id [ID] not found in DB")
+    })
+    @PutMapping("/{notificationId}/notificationStatus")
+    public ResponseEntity<BaseAppResponse<String>> updateNotificationStatus(@PathVariable String notificationId) {
+        notificationService.updateNotificationStatus(notificationId);
+        return new ResponseEntity<>(BaseAppResponse.success(null, "Notification status updated successfully"), HttpStatus.OK);
     }
 
     /**

@@ -4,8 +4,8 @@ package gr.atc.modapto.enums;
  * Enum for Notification Type
  */
 public enum NotificationType {
-    Event("Event"),
-    Assignment("Assignment");
+    EVENT("Event"),
+    ASSIGNMENT("Assignment");
 
     private final String type;
 

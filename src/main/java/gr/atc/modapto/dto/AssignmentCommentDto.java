@@ -34,7 +34,7 @@ public class AssignmentCommentDto {
     @Builder.Default
     @ValidAssignmentOrigin
     @JsonProperty("origin")
-    private String origin = AssignmentOrigin.System.toString().toString();
+    private String origin = AssignmentOrigin.SYSTEM.toString();
 
     @Builder.Default
     @NotEmpty

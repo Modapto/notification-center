@@ -36,4 +36,7 @@ public class Notification extends Message {
 
     @Field(type = FieldType.Keyword, name = "relatedAssignment")
     private String relatedAssignment;
+
+    @Field(type = FieldType.Keyword, name = "messageStatus")
+    private String messageStatus;
 }

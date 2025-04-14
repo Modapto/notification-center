@@ -39,6 +39,9 @@ public class NotificationDto{
     @JsonProperty("notificationStatus")
     private String notificationStatus;
 
+    @JsonProperty("messageStatus")
+    private String messageStatus;
+
     @JsonProperty("sourceComponent")
     private String sourceComponent;
 

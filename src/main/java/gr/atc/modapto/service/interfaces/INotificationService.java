@@ -21,4 +21,6 @@ public interface INotificationService {
     List<String> retrieveUserIdsPerPilot(String pilot);
 
     List<String> retrieveUserIdsPerRoles(List<String> roles);
+
+    void updateNotificationStatus(String notificationId);
 }

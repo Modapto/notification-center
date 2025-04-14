@@ -6,14 +6,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import io.swagger.v3.oas.annotations.tags.Tag;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
@@ -38,6 +37,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,13 +64,14 @@ public class AssignmentController {
      * @param isAscending : Sort order
      * @return Page<AssignmentDto> : Assignments
      */
-    @Operation(summary = "Retrieve all Assignments", security = @SecurityRequirement(name = "bearerToken"))
+    @Operation(summary = "Retrieve all Assignments for Super-Admins usage", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = ASSIGNMENT_SUCCESS),
             @ApiResponse(responseCode = "400", description = "Invalid sort attribute."),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
-            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token")
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. You don't have the rights to access the resource or check the JWT and CSRF Tokens")
     })
+    @PreAuthorize(value = "hasRole('SUPER_ADMIN')")
     @GetMapping
     public ResponseEntity<BaseAppResponse<PaginatedResultsDto<AssignmentDto>>> getAllAssignments(
             @RequestParam(required = false, defaultValue = "0") int page,
@@ -256,7 +257,7 @@ public class AssignmentController {
 
         // Check whether assignment priority has been changed
         if (assignmentDto.getPriority() != null) {
-            systemComment.setComment("Task prioity updated to '" + assignmentDto.getPriority() + "'");
+            systemComment.setComment("Task priority updated to '" + assignmentDto.getPriority() + "'");
             comments.add(systemComment);
         }
 

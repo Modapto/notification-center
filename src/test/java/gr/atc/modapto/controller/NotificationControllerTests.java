@@ -1,19 +1,19 @@
 package gr.atc.modapto.controller;
 
-import gr.atc.modapto.dto.NotificationDto;
-import gr.atc.modapto.enums.MessagePriority;
-import gr.atc.modapto.enums.NotificationStatus;
-import gr.atc.modapto.enums.NotificationType;
-import gr.atc.modapto.exception.CustomExceptions;
-import gr.atc.modapto.repository.AssignmentRepository;
-import gr.atc.modapto.repository.EventMappingsRepository;
-import gr.atc.modapto.repository.EventRepository;
-import gr.atc.modapto.repository.NotificationRepository;
-import gr.atc.modapto.service.interfaces.INotificationService;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
@@ -24,25 +24,27 @@ import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import gr.atc.modapto.dto.NotificationDto;
+import gr.atc.modapto.enums.MessagePriority;
+import gr.atc.modapto.enums.NotificationStatus;
+import gr.atc.modapto.enums.NotificationType;
+import gr.atc.modapto.exception.CustomExceptions;
+import gr.atc.modapto.repository.AssignmentRepository;
+import gr.atc.modapto.repository.EventMappingsRepository;
+import gr.atc.modapto.repository.EventRepository;
+import gr.atc.modapto.repository.NotificationRepository;
+import gr.atc.modapto.service.interfaces.INotificationService;
 
 @WebMvcTest(NotificationController.class)
 @ActiveProfiles("test")
@@ -90,12 +92,12 @@ class NotificationControllerTests {
     @BeforeAll
     static void setup(){
         testNotification = NotificationDto.builder()
-                .notificationType(NotificationType.Event.toString())
-                .notificationStatus(NotificationStatus.Unread.toString())
+                .notificationType(NotificationType.EVENT.toString())
+                .notificationStatus(NotificationStatus.UNREAD.toString())
                 .sourceComponent("Test Component")
                 .productionModule("Test Production Module")
                 .timestamp(LocalDateTime.now())
-                .priority(MessagePriority.Mid.toString())
+                .priority(MessagePriority.MID.toString())
                 .description("Test")
                 .build();
 
@@ -267,4 +269,17 @@ class NotificationControllerTests {
                 .andExpect(jsonPath("$.message", is("An unexpected error occurred")));
     }
 
+    @DisplayName("Update Notification Status to 'Read': Success")
+    @WithMockUser
+    @Test
+    void givenValidNotificationId_whenUpdateNotificationStatus_thenReturnSuccess() throws Exception {
+
+        // When
+        mockMvc.perform(put("/api/notifications/12345/notificationStatus")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON))                // Then
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Notification status updated successfully")));
+    }
 }

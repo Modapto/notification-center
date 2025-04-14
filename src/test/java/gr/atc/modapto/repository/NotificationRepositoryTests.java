@@ -58,13 +58,13 @@ class NotificationRepositoryTests extends SetupTestContainersEnvironment {
         List<Notification> notifications = new ArrayList<>();
 
         // Notifications for user1
-        notifications.add(createNotification(USER_ID_1, "ASSIGNMENT_1", null, "MODULE_1", NotificationStatus.Read.toString()));
-        notifications.add(createNotification(USER_ID_1, "ASSIGNMENT_2", null, "MODULE_2", NotificationStatus.Unread.toString()));
-        notifications.add(createNotification(USER_ID_1, null, "EVENT_1", "MODULE_1", NotificationStatus.Read.toString()));
+        notifications.add(createNotification(USER_ID_1, "ASSIGNMENT_1", null, "MODULE_1", NotificationStatus.READ.toString()));
+        notifications.add(createNotification(USER_ID_1, "ASSIGNMENT_2", null, "MODULE_2", NotificationStatus.UNREAD.toString()));
+        notifications.add(createNotification(USER_ID_1, null, "EVENT_1", "MODULE_1", NotificationStatus.READ.toString()));
 
         // Notifications for user2
-        notifications.add(createNotification(USER_ID_2, "ASSIGNMENT_3", null, "MODULE_1", NotificationStatus.Read.toString()));
-        notifications.add(createNotification(USER_ID_2, null, "EVENT_2","MODULE_3", NotificationStatus.Unread.toString()));
+        notifications.add(createNotification(USER_ID_2, "ASSIGNMENT_3", null, "MODULE_1", NotificationStatus.READ.toString()));
+        notifications.add(createNotification(USER_ID_2, null, "EVENT_2","MODULE_3", NotificationStatus.UNREAD.toString()));
 
         return notifications;
     }
@@ -165,7 +165,7 @@ class NotificationRepositoryTests extends SetupTestContainersEnvironment {
     void givenNewNotification_whenSave_thenShouldBeRetrievable() {
         // Given
         String userId = USER_ID_1;
-        Notification newNotification = createNotification(userId, "New Assignment", null, "MODULE_4", NotificationStatus.Unread.toString());
+        Notification newNotification = createNotification(userId, "New Assignment", null, "MODULE_4", NotificationStatus.UNREAD.toString());
         Pageable pageable = PageRequest.of(0, 10);
         long initialCount = notificationRepository.findByUserId(userId, pageable).getTotalElements();
 

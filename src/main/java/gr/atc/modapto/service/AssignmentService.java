@@ -7,9 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import gr.atc.modapto.service.interfaces.IAssignmentService;
-import gr.atc.modapto.service.interfaces.INotificationService;
-
 import org.modelmapper.MappingException;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -33,6 +30,8 @@ import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.model.Assignment;
 import gr.atc.modapto.model.AssignmentComment;
 import gr.atc.modapto.repository.AssignmentRepository;
+import gr.atc.modapto.service.interfaces.IAssignmentService;
+import gr.atc.modapto.service.interfaces.INotificationService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,6 +53,8 @@ public class AssignmentService implements IAssignmentService {
     private static final String ASSIGNMENTS_MAPPING_ERROR = "Error mapping Assignments to Dto - Error: ";
 
     private static final String ASSIGNMENT_MAPPING_ERROR = "Error mapping Assignment to Dto - Error: ";
+    
+    private static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
 
     /**
      * Retrieve all Assignments
@@ -86,7 +87,7 @@ public class AssignmentService implements IAssignmentService {
             if (assignmentType == null)
                 // Null assignmentType
                 return assignmentRepository.findBySourceUserIdOrTargetUserId(userId, userId, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
-            else if (assignmentType.equals(AssignmentType.Received.toString()))
+            else if (assignmentType.equals(AssignmentType.RECEIVED.toString()))
                 // Received assignments case
                 return assignmentRepository.findByTargetUserId(userId, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
             else
@@ -114,7 +115,7 @@ public class AssignmentService implements IAssignmentService {
             if (assignmentType == null)
                 // Null assignmentType
                 return assignmentRepository.findByStatusAndSourceUserIdOrTargetUserId(status, userId, userId, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
-            else if (assignmentType.equals(AssignmentType.Received.toString()))
+            else if (assignmentType.equals(AssignmentType.RECEIVED.toString()))
                 // Received assignments case
                 return assignmentRepository.findByTargetUserIdAndStatus(userId, status, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
             else
@@ -204,7 +205,7 @@ public class AssignmentService implements IAssignmentService {
         try {
             // Create Assignment and set the initial fields
             Assignment assignment = modelMapper.map(assignmentDto, Assignment.class);
-            assignment.setStatus(AssignmentStatus.Open.toString().toString());
+            assignment.setStatus(AssignmentStatus.OPEN.toString());
             assignment.setTimestamp(LocalDateTime.now());
             assignment.setTimestampUpdated(LocalDateTime.now());
             return assignmentRepository.save(assignment).getId();
@@ -225,8 +226,9 @@ public class AssignmentService implements IAssignmentService {
             try {
                 // Create the notification
                 NotificationDto assignmentNotification = NotificationDto.builder()
-                        .notificationType(NotificationType.Assignment.toString())
-                        .notificationStatus(NotificationStatus.Unread.toString().toString())
+                        .notificationType(NotificationType.ASSIGNMENT.toString())
+                        .notificationStatus(NotificationStatus.UNREAD.toString())
+                        .messageStatus(assignment.getStatus())
                         .productionModule(assignment.getProductionModule())
                         .userId(assignment.getTargetUserId())
                         .smartService(null)
@@ -245,8 +247,12 @@ public class AssignmentService implements IAssignmentService {
                 }
 
                 assignmentNotification.setId(notificationId);
+                String assignmentMessage = objectMapper.writeValueAsString(assignmentNotification);
                 // Send notification through WebSocket
-                webSocketService.notifyUserWebSocket(assignmentNotification.getUserId(), objectMapper.writeValueAsString(assignmentNotification));
+                webSocketService.notifyUsersAndRolesViaWebSocket(assignmentMessage, assignmentNotification.getUserId());
+
+                // Send notification through WebSockets for Super-Admins
+                webSocketService.notifyUsersAndRolesViaWebSocket(assignmentMessage, SUPER_ADMIN_ROLE);
             } catch (JsonProcessingException e){
                 log.error("Error processing Notification Dto to JSON - Error: {}", e.getMessage());
             }

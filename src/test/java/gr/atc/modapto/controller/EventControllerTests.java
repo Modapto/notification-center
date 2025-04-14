@@ -103,7 +103,7 @@ class EventControllerTests {
                 .eventType(null)
                 .timestamp(LocalDateTime.now())
                 .description(null)
-                .priority(MessagePriority.High.toString())
+                .priority(MessagePriority.HIGH.toString())
                 .build();
 
         events = List.of(testEvent);

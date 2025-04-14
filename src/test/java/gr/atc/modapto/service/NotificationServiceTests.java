@@ -18,6 +18,8 @@ import org.mockito.Mock;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
@@ -76,12 +78,12 @@ class NotificationServiceTests {
             .id("1")
             .timestamp(LocalDateTime.now())
             .userId("user1")
-            .notificationStatus(NotificationStatus.Unread.toString())
+            .notificationStatus(NotificationStatus.UNREAD.toString())
             .description("Test Notification")
             .build();
 
         notification = new Notification();
-        notification.setNotificationStatus(NotificationStatus.Unread.toString());
+        notification.setNotificationStatus(NotificationStatus.UNREAD.toString());
         notification.setId("1");
         notification.setUserId("user1");
         notification.setTimestamp(LocalDateTime.now());
@@ -201,6 +203,33 @@ class NotificationServiceTests {
     @DisplayName("Retrieve Notification by ID: Not Found")
     @Test
     void givenInvalidNotificationId_whenRetrieveNotificationById_thenThrowDataNotFoundException() {
+        // Given
+        when(notificationRepository.findById(anyString())).thenReturn(Optional.empty());
+
+        // When - Then
+        DataNotFoundException exception = assertThrows(DataNotFoundException.class, () -> {
+            notificationService.retrieveNotificationById("invalid");
+        });
+
+        assertEquals("Notification with id: invalid not found in DB", exception.getMessage());
+    }
+
+    @DisplayName("Update Notification Status by ID: Success")
+    @Test
+    void givenValidNotificationId_whenUpdateNotificationStatus_thenReturnSuccess() {
+        // Given
+        when(notificationRepository.findById(anyString())).thenReturn(Optional.of(notification));
+
+        // When
+        notificationService.updateNotificationStatus("1");
+
+        // Then
+        verify(notificationRepository, times(1)).save(notification);
+    }
+
+    @DisplayName("Update Notification Status by ID: Not Found")
+    @Test
+    void givenInvalidNotificationId_whenUpdateNotificationStatus_thenThrowDataNotFoundException() {
         // Given
         when(notificationRepository.findById(anyString())).thenReturn(Optional.empty());
 

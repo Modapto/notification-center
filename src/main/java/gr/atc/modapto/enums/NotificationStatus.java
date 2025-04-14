@@ -4,8 +4,8 @@ package gr.atc.modapto.enums;
  * Enum for Notification Status
  */
 public enum NotificationStatus {
-    Unread("Unread"),
-    Read("Read");
+    UNREAD("Unread"),
+    READ("Read");
 
     private final String status;
 

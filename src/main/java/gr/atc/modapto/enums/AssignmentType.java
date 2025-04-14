@@ -4,8 +4,8 @@ package gr.atc.modapto.enums;
  * Enum for Assignment Type
  */
 public enum AssignmentType {
-    Requested("Requested"),
-    Received("Received");
+    REQUESTED("Requested"),
+    RECEIVED("Received");
 
     private final String type;
 

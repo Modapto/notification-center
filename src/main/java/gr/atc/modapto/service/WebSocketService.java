@@ -20,9 +20,9 @@ public class WebSocketService {
      * @param message : String message
      * @param topicName : Topic Name for specific user roles
      */
-    public void notifyRolesWebSocket(String message, String topicName){
+    public void notifyUsersAndRolesViaWebSocket(String message, String topicName){
         try {
-            String websocketTopic = "/events/" + topicName.toLowerCase();
+            String websocketTopic = "/topic/notifications/" + topicName;
             log.info("Notifying websocket topic: {}", websocketTopic);
             messagingTemplate.convertAndSend(websocketTopic, message);
         } catch (MessagingException e) {
@@ -32,15 +32,16 @@ public class WebSocketService {
 
     /**
      * Notify specific user through WebSocket
+     * Works when the UserID is mapped to a Spring Security Principal
      * 
      * @param userId : User ID of user that will connect to specific topics
      * @param message : String message
      */
-    public void notifyUserWebSocket(String userId, String message) {
+    public void notifyUserViaWebSocket(String userId, String message) {
         try {
             String websocketTopic = "/user/" + userId + "/queue/notifications";
             log.info("Notifying user: {} on websocket topic: {}", userId, websocketTopic);
-            messagingTemplate.convertAndSendToUser(userId, "/queue/events", message);
+            messagingTemplate.convertAndSendToUser(userId, "/queue/notifications", message);
         } catch (MessagingException e) {
             log.error("Error in sending data to user via websockets - {}", e.getMessage());
         }

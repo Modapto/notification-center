@@ -2,7 +2,6 @@ package gr.atc.modapto.config;
 
 import java.util.List;
 
-import gr.atc.modapto.security.RateLimitingFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,12 +17,14 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import gr.atc.modapto.security.JwtAuthConverter;
+import gr.atc.modapto.security.RateLimitingFilter;
 import gr.atc.modapto.security.UnauthorizedEntryPoint;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
     @Value("${spring.security.cors.domains")
     private String rawCorsDomains;
 

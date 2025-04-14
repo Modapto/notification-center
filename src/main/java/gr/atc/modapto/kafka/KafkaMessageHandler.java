@@ -3,8 +3,10 @@ package gr.atc.modapto.kafka;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import gr.atc.modapto.enums.MessagePriority;
 import gr.atc.modapto.events.NewNotificationEvent;
 import gr.atc.modapto.events.NewNotificationMappingsEvent;
+import org.apache.commons.lang3.EnumUtils;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -31,6 +33,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class KafkaMessageHandler {
+
+    private static final String GLOBAL_EVENT_MAPPINGS = "ALL";
+    private static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
 
     @Value("${kafka.topics}")
     @SuppressWarnings("unused")
@@ -72,7 +77,7 @@ public class KafkaMessageHandler {
     public void consume(EventDto event, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic, @Header(value = KafkaHeaders.RECEIVED_KEY, required = false) String messageKey){
         // Validate that same essential variables are present
         if (!isValidEvent(event)){
-            log.error("Kafka message error - Either priority or production module or Topic are missing from the event. Message is discarded! Data: {}",event);
+            log.error("Kafka message error - Either priority or production module or Topic are missing / invalid from the event. Message is discarded! Data: {}",event);
             return;
         }
 
@@ -100,18 +105,21 @@ public class KafkaMessageHandler {
             NotificationDto eventNotification = generateNotificationFromEvent(event);
             log.info("Notification created: {}", eventNotification);
             
-            // Store notifications per each User
+            // Store notifications per each User - Async
             createNotificationForUsers(eventNotification, userIds);
 
             // Remove userId from notification and convert it to String
             eventNotification.setUserId(null);
             String notificationMessage = objectMapper.writeValueAsString(eventNotification);
-            if (userRolesPerEventType.isEmpty() || userIds.isEmpty())
+            if (userRolesPerEventType.isEmpty() || userIds.isEmpty() || userRolesPerEventType.contains(GLOBAL_EVENT_MAPPINGS))
                 // Send notification globally to pilot users
-                webSocketService.notifyRolesWebSocket(notificationMessage, pilot.toUpperCase());
+                webSocketService.notifyUsersAndRolesViaWebSocket(notificationMessage, pilot.toUpperCase());
             else 
                 // Send notification through WebSockets to all user roles in the plant
-                userRolesPerEventType.forEach(role -> webSocketService.notifyRolesWebSocket(notificationMessage, role));
+                userRolesPerEventType.forEach(role -> webSocketService.notifyUsersAndRolesViaWebSocket(notificationMessage, role));
+            
+            // Send notification through WebSockets for Super-Admins
+            webSocketService.notifyUsersAndRolesViaWebSocket(notificationMessage, SUPER_ADMIN_ROLE);
         } catch (JsonProcessingException e){
             log.error("Unable to convert Notification to string message - {}", e.getMessage());
         } catch (ModelMappingException  e){
@@ -129,7 +137,7 @@ public class KafkaMessageHandler {
             log.info("No mappings exist for topic '{}'. All users in {} plant will be informed!",
                     event.getTopic(), pilot.toUpperCase());
 
-            // Request creation of mapping
+            // Request creation of mapping - Async
             createDefaultNotificationMapping(event.getTopic());
 
             return notificationService.retrieveUserIdsPerPilot(pilot.toUpperCase());
@@ -148,18 +156,30 @@ public class KafkaMessageHandler {
      * Method to publish Application event to create a new Event Mapping
      */
     private void createDefaultNotificationMapping(String topic) {
-        NewNotificationMappingsEvent appEvent = new NewNotificationMappingsEvent(this, topic);
-        log.info("Publishing event to create a new Event Mapping for topic: {}", topic);
-        eventPublisher.publishEvent(appEvent);
+        Thread.startVirtualThread(() -> {
+            try {
+                NewNotificationMappingsEvent appEvent = new NewNotificationMappingsEvent(this, topic);
+                log.info("Publishing event to create a new Event Mapping for topic: {}", topic);
+                eventPublisher.publishEvent(appEvent);
+            } catch (Exception e) {
+                log.error("Error while creating a new event mapping: {}", e.getMessage(), e);
+            }
+        });
     }
 
     /*
      * Method to publish Application event to create a new Notification for specific UserIDs
      */
     private void createNotificationForUsers(NotificationDto notification, List<String> userIds) {
-        NewNotificationEvent appEvent = new NewNotificationEvent(this, notification, userIds);
-        log.info("Publishing event to create Notifications for all Users");
-        eventPublisher.publishEvent(appEvent);
+        Thread.startVirtualThread(() -> {
+            try {
+                NewNotificationEvent appEvent = new NewNotificationEvent(this, notification, userIds);
+                log.info("Publishing event to create Notifications for all Users");
+                eventPublisher.publishEvent(appEvent);
+            } catch (Exception e) {
+                log.error("Error while publishing notification event: {}", e.getMessage(), e);
+            }
+        });
     }
 
     /*
@@ -167,8 +187,9 @@ public class KafkaMessageHandler {
      */
     private NotificationDto generateNotificationFromEvent(EventDto event){
         return  NotificationDto.builder()
-                .notificationType(NotificationType.Event.toString())
-                .notificationStatus(NotificationStatus.Unread.toString())
+                .notificationType(NotificationType.EVENT.toString())
+                .notificationStatus(NotificationStatus.UNREAD.toString())
+                .messageStatus(event.getEventType())
                 .sourceComponent(event.getSourceComponent())
                 .productionModule(event.getProductionModule())
                 .smartService(event.getSmartService())
@@ -181,7 +202,7 @@ public class KafkaMessageHandler {
     }
 
     private boolean isValidEvent(EventDto event) {
-        return event.getPriority() != null &&
+        return (event.getPriority() != null && EnumUtils.isValidEnumIgnoreCase(MessagePriority.class, event.getPriority())) &&
                 event.getProductionModule() != null &&
                 event.getTopic() != null;
     }

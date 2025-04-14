@@ -68,7 +68,7 @@ class EventServiceTests {
                 .eventType(null)
                 .timestamp(LocalDateTime.now())
                 .description(null)
-                .priority(MessagePriority.High.toString())
+                .priority(MessagePriority.HIGH.toString())
                 .build();
         
         testEvent = new Event();

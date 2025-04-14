@@ -4,10 +4,10 @@ package gr.atc.modapto.enums;
  * Enum for Assignment Status
  */
 public enum AssignmentStatus {
-    Open("Open"),
-    Re_Open("Re-Open"),
-    In_Progress("In Progress"),
-    Done("Done");
+    OPEN("Open"),
+    RE_OPEN("Re-Open"),
+    IN_PROGRESS("In Progress"),
+    DONE("Done");
 
     private final String status;
 

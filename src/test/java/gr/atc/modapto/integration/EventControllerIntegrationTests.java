@@ -66,7 +66,7 @@ class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
                 .eventType(null)
                 .timestamp(LocalDateTime.now())
                 .description(null)
-                .priority(MessagePriority.High.toString())
+                .priority(MessagePriority.HIGH.toString())
                 .build();
 
         testEventMapping = EventMappingsDto.builder()

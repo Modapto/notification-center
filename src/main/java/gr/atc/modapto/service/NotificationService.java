@@ -125,7 +125,7 @@ public class NotificationService implements INotificationService {
     @Override
     public List<NotificationDto> retrieveUnreadNotificationsPerUserId(String userId) {
         try{
-            Page<Notification> notificationsPage = notificationRepository.findByUserIdAndNotificationStatus(userId, NotificationStatus.Unread.toString(), Pageable.unpaged());
+            Page<Notification> notificationsPage = notificationRepository.findByUserIdAndNotificationStatus(userId, NotificationStatus.UNREAD.toString(), Pageable.unpaged());
             List<Notification> notifications = notificationsPage.getContent();
             return notifications.stream().map(notification -> modelMapper.map(notification, NotificationDto.class)).toList();
         } catch (MappingException e) {
@@ -149,6 +149,22 @@ public class NotificationService implements INotificationService {
         } catch (MappingException e) {
             throw new ModelMappingException("Error mapping Notification to Dto - Error: " + e.getMessage());
         }
+    }
+
+    /**
+     * Update notification status (From Unread to Read) for a specific notification
+     *
+     * @param notificationId : ID of notification
+     */
+    @Override
+    public void updateNotificationStatus(String notificationId) {
+        Optional<Notification> optionalNotification = notificationRepository.findById(notificationId);
+        if (optionalNotification.isEmpty())
+            throw new DataNotFoundException("Notification with id: " + notificationId + " not found in DB");
+
+        Notification notification = optionalNotification.get();
+        notification.setNotificationStatus(NotificationStatus.READ.toString());
+        notificationRepository.save(notification);
     }
 
     /**

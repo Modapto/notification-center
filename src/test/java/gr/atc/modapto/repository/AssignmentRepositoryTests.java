@@ -62,13 +62,13 @@ class AssignmentRepositoryTests extends SetupTestContainersEnvironment {
         List<Assignment> assignments = new ArrayList<>();
 
         // Assignments for sourceUser1
-        assignments.add(createAssignment(SOURCE_USER_ID_1, TARGET_USER_ID_1, AssignmentStatus.Open.toString()));
-        assignments.add(createAssignment(SOURCE_USER_ID_1, TARGET_USER_ID_2, AssignmentStatus.Open.toString()));
-        assignments.add(createAssignment(SOURCE_USER_ID_1, TARGET_USER_ID_1, AssignmentStatus.Done.toString()));
+        assignments.add(createAssignment(SOURCE_USER_ID_1, TARGET_USER_ID_1, AssignmentStatus.OPEN.toString()));
+        assignments.add(createAssignment(SOURCE_USER_ID_1, TARGET_USER_ID_2, AssignmentStatus.OPEN.toString()));
+        assignments.add(createAssignment(SOURCE_USER_ID_1, TARGET_USER_ID_1, AssignmentStatus.DONE.toString()));
 
         // Assignments for sourceUser2
-        assignments.add(createAssignment(SOURCE_USER_ID_2, TARGET_USER_ID_1, AssignmentStatus.Open.toString()));
-        assignments.add(createAssignment(SOURCE_USER_ID_2, TARGET_USER_ID_2, AssignmentStatus.Done.toString()));
+        assignments.add(createAssignment(SOURCE_USER_ID_2, TARGET_USER_ID_1, AssignmentStatus.OPEN.toString()));
+        assignments.add(createAssignment(SOURCE_USER_ID_2, TARGET_USER_ID_2, AssignmentStatus.DONE.toString()));
 
         return assignments;
     }

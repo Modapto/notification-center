@@ -108,12 +108,12 @@ class AssignmentControllerTests {
 
         testAssignment = AssignmentDto.builder()
                 .id("123")
-                .priority(MessagePriority.High.toString())
+                .priority(MessagePriority.HIGH.toString())
                 .sourceUserId("sourceUser")
                 .targetUserId("targetUser")
                 .comments(List.of(testComment))
                 .timestamp(LocalDateTime.now())
-                .status(AssignmentStatus.Open.toString())
+                .status(AssignmentStatus.OPEN.toString())
                 .timestampUpdated(LocalDateTime.now())
                 .description("Test")
                 .build();
@@ -357,7 +357,7 @@ class AssignmentControllerTests {
         // Given
         AssignmentDto newAssignment = new AssignmentDto();
         newAssignment.setDescription("Test");
-        newAssignment.setPriority(MessagePriority.High.toString());
+        newAssignment.setPriority(MessagePriority.HIGH.toString());
         newAssignment.setTargetUserId("456");
         newAssignment.setProductionModule("Test Module");
 

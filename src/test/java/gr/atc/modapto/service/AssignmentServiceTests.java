@@ -99,8 +99,8 @@ class AssignmentServiceTests {
         assignmentDto.setProductionModule("TestModule");
         assignmentDto.setTargetUserId("testUser");
         assignmentDto.setComments(commentsDto);
-        assignmentDto.setPriority(MessagePriority.High.toString());
-        assignmentDto.setStatus(AssignmentStatus.Open.toString());
+        assignmentDto.setPriority(MessagePriority.HIGH.toString());
+        assignmentDto.setStatus(AssignmentStatus.OPEN.toString());
 
         assignment = new Assignment();
         assignment.setId("1");
@@ -108,8 +108,8 @@ class AssignmentServiceTests {
         assignment.setProductionModule("TestModule");
         assignment.setComments(comments);
         assignment.setTargetUserId("testUser");
-        assignment.setStatus(AssignmentStatus.Open.toString());
-        assignmentDto.setPriority(MessagePriority.High.toString());
+        assignment.setStatus(AssignmentStatus.OPEN.toString());
+        assignmentDto.setPriority(MessagePriority.HIGH.toString());
         assignment.setTimestamp(LocalDateTime.now());
     }
 
@@ -154,7 +154,7 @@ class AssignmentServiceTests {
         when(modelMapper.map(any(Assignment.class), eq(AssignmentDto.class))).thenReturn(assignmentDto);
 
         // When
-        Page<AssignmentDto> result = assignmentService.retrieveAssignmentsPerUserIdAndStatus("testUser", AssignmentType.Received.toString(), AssignmentStatus.Open.toString(), Pageable.unpaged());
+        Page<AssignmentDto> result = assignmentService.retrieveAssignmentsPerUserIdAndStatus("testUser", AssignmentType.RECEIVED.toString(), AssignmentStatus.OPEN.toString(), Pageable.unpaged());
 
         // Then
         assertNotNull(result);
@@ -272,7 +272,7 @@ class AssignmentServiceTests {
     @Test
     void whenCreateNotificationAndNotifyUser_thenNotificationSent() throws JsonProcessingException, ExecutionException, InterruptedException {
         when(notificationService.storeNotification(any(NotificationDto.class))).thenReturn("1");
-        doNothing().when(webSocketService).notifyUserWebSocket(anyString(), anyString());
+        doNothing().when(webSocketService).notifyUsersAndRolesViaWebSocket(anyString(), anyString());
 
         // When
         CompletableFuture<Void> result = assignmentService.createNotificationAndNotifyUser(assignmentDto);
@@ -282,7 +282,7 @@ class AssignmentServiceTests {
 
         // Then
         assertNotNull(result);
-        verify(webSocketService, times(1)).notifyUserWebSocket(eq("testUser"), anyString());
+        verify(webSocketService, times(1)).notifyUsersAndRolesViaWebSocket(anyString(), eq("testUser"));
     }
 
     @DisplayName("Delete Assignment: Success")
