@@ -29,7 +29,7 @@ UnauthorizedEntryPoint implements AuthenticationEntryPoint {
 
         // Che
         String requestPath = request.getRequestURI();
-        if (isExcludedPath(requestPath)) {
+        if (isExcludedPath(requestPath, request.getMethod())) {
             return;
         }
 
@@ -52,8 +52,9 @@ UnauthorizedEntryPoint implements AuthenticationEntryPoint {
         response.getWriter().flush();
     }
 
-    private boolean isExcludedPath(String path) {
+    private boolean isExcludedPath(String path, String method) {
         // Define paths to exclude from unauthorized handling
-        return antPathMatcher.match("/api/notification-center/**", path);
+        return antPathMatcher.match("/api/notification-center/**", path) ||
+               method.equalsIgnoreCase("OPTIONS");
     }
 }
