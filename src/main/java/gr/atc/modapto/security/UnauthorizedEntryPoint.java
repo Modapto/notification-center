@@ -7,6 +7,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import gr.atc.modapto.controller.BaseAppResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -17,21 +19,22 @@ import org.springframework.util.AntPathMatcher;
 import java.io.IOException;
 
 @Component
-public class
-UnauthorizedEntryPoint implements AuthenticationEntryPoint {
+@Slf4j
+public class UnauthorizedEntryPoint implements AuthenticationEntryPoint {
 
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
-        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.setContentType("application/json");
-
-        // Che
+        // Check if the request is for an excluded path (e.g., CORS preflight requests)
         String requestPath = request.getRequestURI();
         if (isExcludedPath(requestPath, request.getMethod())) {
+            log.info("Request: {}", request);
             return;
         }
+
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setContentType("application/json");
 
         // Check the validity of the token
         String errorMessage = "Unauthorized request. Check token and try again.";
