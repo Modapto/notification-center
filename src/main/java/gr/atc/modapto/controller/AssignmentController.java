@@ -201,7 +201,7 @@ public class AssignmentController {
             return new ResponseEntity<>(BaseAppResponse.error("Unable to create and store assignment"), HttpStatus.INTERNAL_SERVER_ERROR);
 
         assignmentDto.setId(assignmentId);
-        // Create Notification and Notify relevant user asynchronously
+        // Create Notification and Notify relevant user asynchronously - Change this to Notification Service and create also a new notification upon status change
         CompletableFuture<Void> notificationCreationAsync = assignmentService.createNotificationAndNotifyUser(assignmentDto);
 
         // Log the notification creation process
@@ -237,6 +237,8 @@ public class AssignmentController {
         assignmentDto.setId(assignmentId);
         AssignmentDto updatedAssignment = generateSystemComments(assignmentDto);
         assignmentService.updateAssignment(updatedAssignment);
+
+        // Create Notification and Notify relevant user asynchronously if the status has been changed
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment updated successfully!"), HttpStatus.OK);
     }
 
