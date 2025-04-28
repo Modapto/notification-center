@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SecurityConfig {
 
-    @Value("${spring.security.cors.domains")
+    @Value("${spring.security.cors.domain}")
     private String rawCorsDomains;
 
     /**
