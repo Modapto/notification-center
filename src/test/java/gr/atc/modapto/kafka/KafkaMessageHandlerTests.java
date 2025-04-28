@@ -13,8 +13,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +31,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.enums.MessagePriority;
-import gr.atc.modapto.events.NewNotificationEvent;
-import gr.atc.modapto.events.NewNotificationMappingsEvent;
 import gr.atc.modapto.service.WebSocketService;
 import static org.awaitility.Awaitility.await;
 import java.util.concurrent.TimeUnit;

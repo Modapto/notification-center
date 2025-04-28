@@ -29,7 +29,7 @@ public class EventDto {
     private String description;
 
     @NotEmpty(message = "Production Module cannot be empty")
-    @JsonProperty("productionModule")
+    @JsonProperty("module")
     private String productionModule;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")

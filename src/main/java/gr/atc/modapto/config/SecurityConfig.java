@@ -53,6 +53,7 @@ public class SecurityConfig {
                 // HTTP Requests authorization properties on URLs
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
                         .requestMatchers("/api/notification-center/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
                 // JWT Authentication Configuration
                 .oauth2ResourceServer(oauth2ResourceServerCustomizer -> oauth2ResourceServerCustomizer
