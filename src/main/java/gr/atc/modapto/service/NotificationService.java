@@ -209,6 +209,20 @@ public class NotificationService implements INotificationService {
     }
 
     /**
+     * Delete notification by Id
+     *
+     * @param notificationId: Id of notification
+     */
+    @Override
+    public void deleteNotificiationById(String notificationId) {
+        Optional<Notification> optionalNotification = notificationRepository.findById(notificationId);
+        if (optionalNotification.isEmpty())
+            throw new DataNotFoundException("Notification with id: " + notificationId + " not found in DB");
+
+        notificationRepository.delete(optionalNotification.get());
+    }
+
+    /**
      * Retrieve user ids per role
      *
      * @param roles: User Roles correlated with an event

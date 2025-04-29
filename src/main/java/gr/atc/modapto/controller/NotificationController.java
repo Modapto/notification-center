@@ -170,6 +170,24 @@ public class NotificationController {
     }
 
     /**
+     * Delete Notification by ID
+     *
+     * @return Success message
+     */
+    @Operation(summary = "Delete notification by ID", security = @SecurityRequirement(name = "bearerToken"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Notification deleted successfully"),
+            @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
+            @ApiResponse(responseCode = "404", description = "Notification with id [ID] not found in DB")
+    })
+    @DeleteMapping("/{notificationId}")
+    public ResponseEntity<BaseAppResponse<String>> deleteNotificationByIdEndpoint(@PathVariable String notificationId) {
+        notificationService.deleteNotificiationById(notificationId);
+        return new ResponseEntity<>(BaseAppResponse.success(null, "Notification deleted successfully"), HttpStatus.OK);
+    }
+
+    /**
      * Create pagination parameters
      *
      * @param page : Page of results
