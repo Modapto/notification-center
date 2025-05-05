@@ -58,6 +58,7 @@ public class UnauthorizedEntryPoint implements AuthenticationEntryPoint {
     private boolean isExcludedPath(String path, String method) {
         // Define paths to exclude from unauthorized handling
         return antPathMatcher.match("/api/notification-center/**", path) ||
-               method.equalsIgnoreCase("OPTIONS");
+               method.equalsIgnoreCase("OPTIONS") || 
+               antPathMatcher.match("/notifications/websocket/**", path);
     }
 }

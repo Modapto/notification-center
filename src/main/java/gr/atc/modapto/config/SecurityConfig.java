@@ -20,12 +20,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import gr.atc.modapto.security.JwtAuthConverter;
 import gr.atc.modapto.security.RateLimitingFilter;
 import gr.atc.modapto.security.UnauthorizedEntryPoint;
-import lombok.extern.slf4j.Slf4j;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@Slf4j
 public class SecurityConfig {
 
     @Value("${spring.security.cors.domains}")
@@ -57,6 +55,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
                         .requestMatchers("/api/notification-center/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Web Socket connection permit all
+                        .requestMatchers("/notifications/websocket/**").permitAll()
                         .anyRequest().authenticated())
                 // JWT Authentication Configuration
                 .oauth2ResourceServer(oauth2ResourceServerCustomizer -> oauth2ResourceServerCustomizer
@@ -71,9 +71,7 @@ public class SecurityConfig {
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-
         List<String> corsDomains = List.of(rawCorsDomains.split(","));
-        log.info("CORS domains: {}", corsDomains);
 
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(corsDomains);
