@@ -7,7 +7,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import gr.atc.modapto.controller.BaseAppResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
@@ -19,7 +18,6 @@ import org.springframework.util.AntPathMatcher;
 import java.io.IOException;
 
 @Component
-@Slf4j
 public class UnauthorizedEntryPoint implements AuthenticationEntryPoint {
 
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
@@ -29,7 +27,6 @@ public class UnauthorizedEntryPoint implements AuthenticationEntryPoint {
         // Check if the request is for an excluded path (e.g., CORS preflight requests)
         String requestPath = request.getRequestURI();
         if (isExcludedPath(requestPath, request.getMethod())) {
-            log.info("Request: {}", request);
             return;
         }
 
