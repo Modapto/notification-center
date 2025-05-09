@@ -3,8 +3,8 @@ package gr.atc.modapto.controller;
 import java.util.Arrays;
 import java.util.List;
 
+import gr.atc.modapto.validation.ValidNotificationType;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -45,10 +45,7 @@ public class NotificationController {
      */
     @Operation(summary = "Retrieve all Notifications for Super-Admins", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS, content = @Content(mediaType = "application/json",
-                    schema = @Schema(implementation = BaseAppResponse.class,
-                            subTypes = {PaginatedResultsDto.class, NotificationDto.class},
-                            description = "BaseAppResponse containing PaginatedResultDto of NotificationDto"))),
+            @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS, content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. You don't have the rights to access the resource or check the JWT and CSRF Tokens"),
             @ApiResponse(responseCode = "404", description = "Invalid sort attributes")
@@ -87,9 +84,10 @@ public class NotificationController {
      */
     @Operation(summary = "Retrieve all notification per UserID", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS),
+            @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS, content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
-            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token")
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
+            @ApiResponse(responseCode = "404", description = "Invalid sort attributes")
     })
     @GetMapping("/user/{userId}")
     public ResponseEntity<BaseAppResponse<PaginatedResultsDto<NotificationDto>>> getAllNotificationPerUser(
@@ -113,6 +111,92 @@ public class NotificationController {
             resultsPage.getTotalPages(),
             (int) resultsPage.getTotalElements(),
             resultsPage.isLast());
+
+        return new ResponseEntity<>(BaseAppResponse.success(results, NOTIFICATION_SUCCESS), HttpStatus.OK);
+    }
+
+    /**
+     * Retrieve all Notifications by Notification Type (Event - Assignment)
+     *
+     * @param page: Number of Page
+     * @param size: Size of Page Elements
+     * @param sortAttribute: Sort Based on Variable field
+     * @param isAscending: ASC or DESC
+     * @return PaginatedResultsDto<NotificationDto> : Notifications with pagination
+     */
+    @Operation(summary = "Retrieve all Notifications by Notification Type (Event / Assignment) for Super-Admins", security = @SecurityRequirement(name = "bearerToken"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS, content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Validation Error - Invalid notification type"),
+            @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. You don't have the rights to access the resource or check the JWT and CSRF Tokens"),
+            @ApiResponse(responseCode = "404", description = "Invalid sort attributes")
+    })
+    @PreAuthorize(value = "hasRole('SUPER_ADMIN')")
+    @GetMapping("/notificationType/{notificationType}")
+    public ResponseEntity<BaseAppResponse<PaginatedResultsDto<NotificationDto>>> getAllNotificationsByNotificationType(
+            @PathVariable @ValidNotificationType String notificationType,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "10") int size,
+            @RequestParam(required = false, defaultValue = "timestamp") String sortAttribute,
+            @RequestParam(required = false, defaultValue = "false") boolean isAscending) {
+
+        // Fix the pagination parameters
+        Pageable pageable = createPaginationParameters(page, size, sortAttribute, isAscending);
+        if (pageable == null)
+            return new ResponseEntity<>(BaseAppResponse.error("Invalid sort attributes"), HttpStatus.BAD_REQUEST);
+
+        // Retrieve stored results in pages
+        Page<NotificationDto> resultsPage = notificationService.retrieveAllNotificationsPerNotificationType(notificationType, pageable);
+
+        // Fix the pagination class object
+        PaginatedResultsDto<NotificationDto> results = new PaginatedResultsDto<>(
+                resultsPage.getContent(),
+                resultsPage.getTotalPages(),
+                (int) resultsPage.getTotalElements(),
+                resultsPage.isLast());
+
+        return new ResponseEntity<>(BaseAppResponse.success(results, NOTIFICATION_SUCCESS), HttpStatus.OK);
+    }
+
+    /**
+     * Retrieve all notification per UserID and Notification Type (Event/Assignment)
+     *
+     * @param notificationType: Notification Type
+     * @param userId: Id of user
+     * @return List<NotificationDto> : Notifications
+     */
+    @Operation(summary = "Retrieve all notification per UserID and Notification Type (Event/Assignment)", security = @SecurityRequirement(name = "bearerToken"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = NOTIFICATION_SUCCESS, content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Validation Error - Invalid notification type"),
+            @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
+            @ApiResponse(responseCode = "404", description = "Invalid sort attributes")
+    })
+    @GetMapping("/user/{userId}/notificationType/{notificationType}")
+    public ResponseEntity<BaseAppResponse<PaginatedResultsDto<NotificationDto>>> getAllNotificationPerUserAndPerNotificationType(
+            @PathVariable String userId,
+            @PathVariable @ValidNotificationType String notificationType,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "10") int size,
+            @RequestParam(required = false, defaultValue = "timestamp") String sortAttribute,
+            @RequestParam(required = false, defaultValue = "false") boolean isAscending) {
+
+        // Fix the pagination parameters
+        Pageable pageable = createPaginationParameters(page, size, sortAttribute, isAscending);
+        if (pageable == null)
+            return new ResponseEntity<>(BaseAppResponse.error("Invalid sort attributes"), HttpStatus.BAD_REQUEST);
+
+        // Retrieve stored results in pages
+        Page<NotificationDto> resultsPage = notificationService.retrieveAllNotificationsPerNotificationTypeAndUserId(notificationType, userId, pageable);
+
+        // Fix the pagination class object
+        PaginatedResultsDto<NotificationDto> results = new PaginatedResultsDto<>(
+                resultsPage.getContent(),
+                resultsPage.getTotalPages(),
+                (int) resultsPage.getTotalElements(),
+                resultsPage.isLast());
 
         return new ResponseEntity<>(BaseAppResponse.success(results, NOTIFICATION_SUCCESS), HttpStatus.OK);
     }
@@ -183,7 +267,7 @@ public class NotificationController {
     })
     @DeleteMapping("/{notificationId}")
     public ResponseEntity<BaseAppResponse<String>> deleteNotificationByIdEndpoint(@PathVariable String notificationId) {
-        notificationService.deleteNotificiationById(notificationId);
+        notificationService.deleteNotificationById(notificationId);
         return new ResponseEntity<>(BaseAppResponse.success(null, "Notification deleted successfully"), HttpStatus.OK);
     }
 

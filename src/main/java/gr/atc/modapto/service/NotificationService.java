@@ -1,12 +1,19 @@
 package gr.atc.modapto.service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import gr.atc.modapto.dto.AssignmentDto;
+import gr.atc.modapto.dto.UserDto;
+import gr.atc.modapto.enums.NotificationType;
 import gr.atc.modapto.service.interfaces.INotificationService;
 import org.modelmapper.MappingException;
 import org.modelmapper.ModelMapper;
@@ -19,6 +26,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -44,6 +52,12 @@ public class NotificationService implements INotificationService {
 
     private final ModelMapper modelMapper;
 
+    private final WebSocketService webSocketService;
+
+    private final ObjectMapper objectMapper;
+
+    private static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
+
     @Value("${keycloak.token-uri}")
     private String tokenUri;
 
@@ -62,10 +76,12 @@ public class NotificationService implements INotificationService {
 
     private static final String MAPPING_ERROR = "Error mapping Notifications to Dto - Error: ";
 
-    public NotificationService(NotificationRepository notificationRepository, ModelMapper modelMapper){
+    public NotificationService(NotificationRepository notificationRepository, ModelMapper modelMapper, WebSocketService webSocketService, ObjectMapper objectMapper){
         this.notificationRepository = notificationRepository;
         this.restTemplate = new RestTemplate();
         this.modelMapper = modelMapper;
+        this.webSocketService = webSocketService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -81,6 +97,20 @@ public class NotificationService implements INotificationService {
        } catch (MappingException e){
            throw new ModelMappingException("Unable to map NotificationDto to Notification - " + e.getMessage());
        }
+    }
+
+    /**
+     * Delete notification by Id
+     *
+     * @param notificationId: Id of notification
+     */
+    @Override
+    public void deleteNotificationById(String notificationId) {
+        Optional<Notification> optionalNotification = notificationRepository.findById(notificationId);
+        if (optionalNotification.isEmpty())
+            throw new DataNotFoundException("Notification with id: " + notificationId + " not found in DB");
+
+        notificationRepository.delete(optionalNotification.get());
     }
 
     /**
@@ -128,6 +158,41 @@ public class NotificationService implements INotificationService {
             Page<Notification> notificationsPage = notificationRepository.findByUserIdAndNotificationStatus(userId, NotificationStatus.UNREAD.toString(), Pageable.unpaged());
             List<Notification> notifications = notificationsPage.getContent();
             return notifications.stream().map(notification -> modelMapper.map(notification, NotificationDto.class)).toList();
+        } catch (MappingException e) {
+            throw new ModelMappingException(MAPPING_ERROR + e.getMessage());
+        }
+    }
+
+    /**
+     * Retrieve all notifications per notification status
+     *
+     * @param notificationType : Notification Type
+     * @param pageable : Pagination Attributes
+     * @return Page<NotificationDto>
+     */
+    @Override
+    public Page<NotificationDto> retrieveAllNotificationsPerNotificationType(String notificationType, Pageable pageable) {
+        try{
+            Page<Notification> notificationsPage = notificationRepository.findByNotificationType(notificationType, pageable);
+            return notificationsPage.map(notification -> modelMapper.map(notification, NotificationDto.class));
+        } catch (MappingException e) {
+            throw new ModelMappingException(MAPPING_ERROR + e.getMessage());
+        }
+    }
+
+    /**
+     * Retrieve all notifications per notification status and userId
+     *
+     * @param notificationType : Notification Type
+     * @param userId : User ID
+     * @param pageable : Pagination Attributes
+     * @return Page<NotificationDto>
+     */
+    @Override
+    public Page<NotificationDto> retrieveAllNotificationsPerNotificationTypeAndUserId(String notificationType, String userId, Pageable pageable) {
+        try{
+            Page<Notification> notificationsPage = notificationRepository.findByNotificationTypeAndUserId(notificationType, userId, pageable);
+            return notificationsPage.map(notification -> modelMapper.map(notification, NotificationDto.class));
         } catch (MappingException e) {
             throw new ModelMappingException(MAPPING_ERROR + e.getMessage());
         }
@@ -209,20 +274,6 @@ public class NotificationService implements INotificationService {
     }
 
     /**
-     * Delete notification by Id
-     *
-     * @param notificationId: Id of notification
-     */
-    @Override
-    public void deleteNotificiationById(String notificationId) {
-        Optional<Notification> optionalNotification = notificationRepository.findById(notificationId);
-        if (optionalNotification.isEmpty())
-            throw new DataNotFoundException("Notification with id: " + notificationId + " not found in DB");
-
-        notificationRepository.delete(optionalNotification.get());
-    }
-
-    /**
      * Retrieve user ids per role
      *
      * @param roles: User Roles correlated with an event
@@ -242,25 +293,33 @@ public class NotificationService implements INotificationService {
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         // Retrieve User Ids per role
-        List<String> userIds = new ArrayList<>();
+        List<String> allUserIds = new ArrayList<>();
         roles.forEach(role -> {
             try {
-                ResponseEntity<BaseAppResponse<List<String>>> response = restTemplate.exchange(
-                        userManagerUrl.concat("/api/users/ids/role/").concat(role),
+                ResponseEntity<BaseAppResponse<List<UserDto>>> response = restTemplate.exchange(
+                        userManagerUrl.concat("/api/users/role/").concat(role),
                         HttpMethod.GET,
                         entity,
-                        new ParameterizedTypeReference<>() {
-                        }
+                        new ParameterizedTypeReference<>() {}
                 );
 
-                if (response.getStatusCode().is2xxSuccessful()) {
-                    userIds.addAll(Objects.requireNonNull(Objects.requireNonNull(response.getBody()).getData()));
-                }
+                // Parse response and retrieve user Ids
+                List<String> userIds = Optional.of(response)
+                        .filter(resp -> resp.getStatusCode().is2xxSuccessful())
+                        .map(ResponseEntity::getBody)
+                        .map(BaseAppResponse::getData)
+                        .map(dataList -> dataList.stream()
+                                .map(UserDto::getUserId)
+                                .filter(Objects::nonNull)
+                                .toList())
+                        .orElse(Collections.emptyList());
+
+                allUserIds.addAll(userIds);
             } catch (RestClientException e) {
                 log.error("Unable to locate User IDs for Role: {} - Error: {}", role, e.getMessage());
             }
         });
-        return userIds;
+        return allUserIds;
     }
 
     /**
@@ -297,5 +356,51 @@ public class NotificationService implements INotificationService {
             log.error("Rest Client error during authenticating the client: Error: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Create async a notification connected to an assignment and notify user through WebSockets
+     *
+     * @param assignment: Assignment DTO
+     */
+    @Async("asyncPoolTaskExecutor")
+    @Override
+    public CompletableFuture<Void> createNotificationAndNotifyUser(AssignmentDto assignment) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                // Create the notification
+                NotificationDto assignmentNotification = NotificationDto.builder()
+                        .notificationType(NotificationType.ASSIGNMENT.toString())
+                        .notificationStatus(NotificationStatus.UNREAD.toString())
+                        .messageStatus(assignment.getStatus())
+                        .productionModule(assignment.getProductionModule())
+                        .userId(assignment.getTargetUserId())
+                        .user(assignment.getTargetUser())
+                        .smartService(null)
+                        .relatedAssignment(assignment.getId())
+                        .relatedEvent(null)
+                        .timestamp(LocalDateTime.now())
+                        .priority(assignment.getPriority())
+                        .description(assignment.getDescription())
+                        .build();
+
+                // Store Notification
+                String notificationId = storeNotification(assignmentNotification);
+                if (notificationId == null){
+                    log.error("Notification could not be stored in DB");
+                    return;
+                }
+
+                assignmentNotification.setId(notificationId);
+                String assignmentMessage = objectMapper.writeValueAsString(assignmentNotification);
+                // Send notification through WebSocket
+                webSocketService.notifyUsersAndRolesViaWebSocket(assignmentMessage, assignmentNotification.getUserId());
+
+                // Send notification through WebSockets for Super-Admins
+                webSocketService.notifyUsersAndRolesViaWebSocket(assignmentMessage, SUPER_ADMIN_ROLE);
+            } catch (JsonProcessingException e){
+                log.error("Error processing Notification Dto to JSON - Error: {}", e.getMessage());
+            }
+        });
     }
 }

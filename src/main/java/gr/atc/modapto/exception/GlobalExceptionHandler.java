@@ -3,22 +3,23 @@ package gr.atc.modapto.exception;
 import java.util.Arrays;
 
 import gr.atc.modapto.controller.BaseAppResponse;
-import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
-import gr.atc.modapto.exception.CustomExceptions.JwtTokenException;
-import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
+import static gr.atc.modapto.exception.CustomExceptions.*;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.constraints.NotNull;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -86,6 +87,17 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST);
     }
 
+    /*
+     * Handles validation for Method Parameters
+     */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<BaseAppResponse<String>> validationExceptionHandler(
+            @NonNull HandlerMethodValidationException ex) {
+        return new ResponseEntity<>(BaseAppResponse.error(VALIDATION_ERROR, "Invalid input field"),
+                HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseAppResponse<String>> handleGeneralException(@NotNull Exception ex) {
         return new ResponseEntity<>(BaseAppResponse.error("An unexpected error occurred", ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -106,5 +118,8 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(BaseAppResponse.error("Authentication error", ex.getMessage()), HttpStatus.UNAUTHORIZED);
     }
 
-
+    @ExceptionHandler(UnauthorizedAssignmentUpdateException.class)
+    public ResponseEntity<BaseAppResponse<String>> handleUnauthorizedAssignmentUpdateException(@NotNull UnauthorizedAssignmentUpdateException ex) {
+        return new ResponseEntity<>(BaseAppResponse.error("Unauthorized assignment action", ex.getMessage()), HttpStatus.UNAUTHORIZED);
+    }
 }

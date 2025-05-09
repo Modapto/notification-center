@@ -1,10 +1,8 @@
 package gr.atc.modapto.controller;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -200,18 +198,6 @@ public class AssignmentController {
         if (assignmentId == null)
             return new ResponseEntity<>(BaseAppResponse.error("Unable to create and store assignment"), HttpStatus.INTERNAL_SERVER_ERROR);
 
-        assignmentDto.setId(assignmentId);
-        // Create Notification and Notify relevant user asynchronously - Change this to Notification Service and create also a new notification upon status change
-        CompletableFuture<Void> notificationCreationAsync = assignmentService.createNotificationAndNotifyUser(assignmentDto);
-
-        // Log the notification creation process
-        CompletableFuture.allOf(notificationCreationAsync)
-                .thenRun(() -> log.info("Notification creation process completed"))
-                .exceptionally(ex -> {
-                    log.error("Notification creation process failed", ex);
-                    return null;
-                });
-
         // Return success message
         return new ResponseEntity<>(BaseAppResponse.success(assignmentId, "Assignment created successfully"), HttpStatus.OK);
 
@@ -232,39 +218,15 @@ public class AssignmentController {
             @ApiResponse(responseCode = "500", description = "Unable to create and store assignment")
     })
     @PutMapping("/{assignmentId}")
-    public ResponseEntity<BaseAppResponse<String>> updateAssignment(@PathVariable String assignmentId, @RequestBody AssignmentDto assignmentDto) {
+    public ResponseEntity<BaseAppResponse<String>> updateAssignment(@AuthenticationPrincipal Jwt jwt, @PathVariable String assignmentId, @RequestBody AssignmentDto assignmentDto) {
+        // Check is the user is the owner or the recipient of the assignment
+        String userId = JwtUtils.extractUserId(jwt);
+
         // Check whether assignment status has been changed
         assignmentDto.setId(assignmentId);
-        AssignmentDto updatedAssignment = generateSystemComments(assignmentDto);
-        assignmentService.updateAssignment(updatedAssignment);
+        assignmentService.updateAssignment(assignmentDto, userId);
 
-        // Create Notification and Notify relevant user asynchronously if the status has been changed
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment updated successfully!"), HttpStatus.OK);
-    }
-
-    /**
-     * Generate system comments for assignment status and priority changes
-     *
-     * @param assignmentDto: DTO of assignment
-     * @return AssignmentDto : Updated assignment with system comments
-     */
-    private AssignmentDto generateSystemComments(AssignmentDto assignmentDto) {
-        AssignmentCommentDto systemComment = AssignmentCommentDto.builder().build();
-        List<AssignmentCommentDto> comments = assignmentDto.getComments() != null ? assignmentDto.getComments() : new ArrayList<>();
-        // Check whether assignment status has been changed
-        if (assignmentDto.getStatus() != null){
-            systemComment.setComment("Task status updated to '" + assignmentDto.getStatus() + "'");
-            comments.add(systemComment);
-        }
-
-        // Check whether assignment priority has been changed
-        if (assignmentDto.getPriority() != null) {
-            systemComment.setComment("Task priority updated to '" + assignmentDto.getPriority() + "'");
-            comments.add(systemComment);
-        }
-
-        assignmentDto.setComments(comments);
-        return assignmentDto;
     }
 
     /**
@@ -282,9 +244,12 @@ public class AssignmentController {
             @ApiResponse(responseCode = "500", description = "Unable to create and store assignment")
     })
     @PutMapping("/{assignmentId}/comments")
-    public ResponseEntity<BaseAppResponse<String>> updateAssignmentComments(@PathVariable String assignmentId, @RequestBody @Valid AssignmentCommentDto assignmentComment) {
+    public ResponseEntity<BaseAppResponse<String>> updateAssignmentComments(@AuthenticationPrincipal Jwt jwt, @PathVariable String assignmentId, @RequestBody @Valid AssignmentCommentDto assignmentComment) {
+        // Retrieve current's user ID
+        String userId = JwtUtils.extractUserId(jwt);
+
         assignmentComment.setDatetime(LocalDateTime.now().withNano(0));
-        assignmentService.updateAssignmentComments(assignmentId, assignmentComment);
+        assignmentService.updateAssignmentComments(assignmentId, assignmentComment, userId);
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment comments updated successfully!"), HttpStatus.OK);
     }
 

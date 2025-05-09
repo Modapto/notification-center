@@ -2,6 +2,7 @@ package gr.atc.modapto.repository;
 
 import gr.atc.modapto.config.SetupTestContainersEnvironment;
 import gr.atc.modapto.enums.NotificationStatus;
+import gr.atc.modapto.enums.NotificationType;
 import gr.atc.modapto.model.Notification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -58,18 +59,18 @@ class NotificationRepositoryTests extends SetupTestContainersEnvironment {
         List<Notification> notifications = new ArrayList<>();
 
         // Notifications for user1
-        notifications.add(createNotification(USER_ID_1, "ASSIGNMENT_1", null, "MODULE_1", NotificationStatus.READ.toString()));
-        notifications.add(createNotification(USER_ID_1, "ASSIGNMENT_2", null, "MODULE_2", NotificationStatus.UNREAD.toString()));
-        notifications.add(createNotification(USER_ID_1, null, "EVENT_1", "MODULE_1", NotificationStatus.READ.toString()));
+        notifications.add(createNotification(USER_ID_1, "ASSIGNMENT_1", null, "MODULE_1", NotificationStatus.READ.toString(), NotificationType.ASSIGNMENT.toString()));
+        notifications.add(createNotification(USER_ID_1, "ASSIGNMENT_2", null, "MODULE_2", NotificationStatus.UNREAD.toString(), NotificationType.ASSIGNMENT.toString()));
+        notifications.add(createNotification(USER_ID_1, null, "EVENT_1", "MODULE_1", NotificationStatus.READ.toString(), NotificationType.EVENT.toString()));
 
         // Notifications for user2
-        notifications.add(createNotification(USER_ID_2, "ASSIGNMENT_3", null, "MODULE_1", NotificationStatus.READ.toString()));
-        notifications.add(createNotification(USER_ID_2, null, "EVENT_2","MODULE_3", NotificationStatus.UNREAD.toString()));
+        notifications.add(createNotification(USER_ID_2, "ASSIGNMENT_3", null, "MODULE_1", NotificationStatus.READ.toString(), NotificationType.ASSIGNMENT.toString()));
+        notifications.add(createNotification(USER_ID_2, null, "EVENT_2","MODULE_3", NotificationStatus.UNREAD.toString(), NotificationType.EVENT.toString()));
 
         return notifications;
     }
 
-    private Notification createNotification(String userId, String relatedAssignment, String relatedEvent, String module, String status) {
+    private Notification createNotification(String userId, String relatedAssignment, String relatedEvent, String module, String status, String type) {
         Notification notification = new Notification();
         notification.setId(UUID.randomUUID().toString());
         notification.setUserId(userId);
@@ -77,6 +78,7 @@ class NotificationRepositoryTests extends SetupTestContainersEnvironment {
         notification.setRelatedEvent(relatedEvent);
         notification.setProductionModule(module);
         notification.setNotificationStatus(status);
+        notification.setNotificationType(type);
         notification.setTimestamp(LocalDateTime.now());
         return notification;
     }
@@ -165,7 +167,7 @@ class NotificationRepositoryTests extends SetupTestContainersEnvironment {
     void givenNewNotification_whenSave_thenShouldBeRetrievable() {
         // Given
         String userId = USER_ID_1;
-        Notification newNotification = createNotification(userId, "New Assignment", null, "MODULE_4", NotificationStatus.UNREAD.toString());
+        Notification newNotification = createNotification(userId, "New Assignment", null, "MODULE_4", NotificationStatus.UNREAD.toString(), NotificationType.ASSIGNMENT.toString());
         Pageable pageable = PageRequest.of(0, 10);
         long initialCount = notificationRepository.findByUserId(userId, pageable).getTotalElements();
 
@@ -178,4 +180,42 @@ class NotificationRepositoryTests extends SetupTestContainersEnvironment {
         assertNotNull(result);
         assertEquals(initialCount + 1, result.getTotalElements());
     }
+
+    @DisplayName("Find notifications by notification type : Success")
+    @Test
+    void givenNotificationType_whenFindByNotificationType_thenReturnNotifications() {
+        // Given
+        Pageable pageable = PageRequest.of(0, 10);
+        String type = NotificationType.ASSIGNMENT.toString();
+
+        // When
+        Page<Notification> result = notificationRepository.findByNotificationType(type, pageable);
+
+        // Thens
+        assertNotNull(result);
+        assertEquals(3, result.getTotalElements());
+        result.getContent().forEach(notification ->
+                assertEquals(type, notification.getNotificationType())
+        );
+    }
+
+    @DisplayName("Find notifications by notification type and user ID : Success")
+    @Test
+    void givenNotificationTypeAndUserId_whenFindByNotificationTypeAndUserId_thenReturnFilteredNotifications() {
+        // Given
+        Pageable pageable = PageRequest.of(0, 10);
+        String type = NotificationType.EVENT.toString();
+
+        // When
+        Page<Notification> result = notificationRepository.findByNotificationTypeAndUserId(type, USER_ID_1, pageable);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        result.getContent().forEach(notification -> {
+            assertEquals(type, notification.getNotificationType());
+            assertEquals(USER_ID_1, notification.getUserId());
+        });
+    }
+
 }

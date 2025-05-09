@@ -7,7 +7,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import gr.atc.modapto.controller.BaseAppResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -18,13 +17,14 @@ import org.springframework.util.AntPathMatcher;
 import java.io.IOException;
 
 @Component
-public class UnauthorizedEntryPoint implements AuthenticationEntryPoint {
+public class
+UnauthorizedEntryPoint implements AuthenticationEntryPoint {
 
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
-        // Check if the request is for an excluded path (e.g., CORS preflight requests)
+        // Check if the request path is excluded from unauthorized handling
         String requestPath = request.getRequestURI();
         if (isExcludedPath(requestPath, request.getMethod())) {
             return;
@@ -54,8 +54,8 @@ public class UnauthorizedEntryPoint implements AuthenticationEntryPoint {
 
     private boolean isExcludedPath(String path, String method) {
         // Define paths to exclude from unauthorized handling
-        return antPathMatcher.match("/api/notification-center/**", path) ||
-               method.equalsIgnoreCase("OPTIONS") || 
-               antPathMatcher.match("/notifications/websocket/**", path);
+        return antPathMatcher.match("/api/notification-center/**", path)
+                || method.equalsIgnoreCase("OPTIONS")
+                || antPathMatcher.match("/notifications/websocket/**", path);
     }
 }

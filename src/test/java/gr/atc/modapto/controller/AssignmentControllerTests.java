@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
@@ -365,7 +366,6 @@ class AssignmentControllerTests {
         completableFuture.complete(null);
 
         given(assignmentService.storeAssignment(any(AssignmentDto.class))).willReturn("123");
-        given(assignmentService.createNotificationAndNotifyUser(any(AssignmentDto.class))).willReturn(completableFuture);
 
         // Mock JWT authentication
         JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
@@ -427,10 +427,41 @@ class AssignmentControllerTests {
                 .andExpect(jsonPath("$.message", is("Assignment updated successfully!")));
     }
 
+    @DisplayName("Update Assignment Status and Priority: Success / Description and Comments are also changing")
+    @WithMockUser
+    @Test
+    void givenValidAssignmentIdWithUpdatedStatusAndPriority_whenUpdateAssignment_thenReturnSuccess() throws Exception {
+        // Given
+        AssignmentDto mockAssignment = AssignmentDto.builder()
+                .priority(MessagePriority.HIGH.toString())
+                .comments(List.of())
+                .status(AssignmentStatus.OPEN.toString())
+                .build();
+
+        // Mock JWT authentication
+        JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
+        SecurityContextHolder.getContext().setAuthentication(jwtAuthenticationToken);
+
+        // When - Then
+        mockMvc.perform(put("/api/assignments/assignmentId")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(mockAssignment)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Assignment updated successfully!")));
+    }
+
     @DisplayName("Update Assignment Comments: Success")
     @WithMockUser
     @Test
     void givenValidAssignmentIdAndCommentDto_whenUpdateAssignmentComments_thenReturnSuccess() throws Exception {
+        // Given
+        // Mock JWT authentication
+        JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
+        SecurityContextHolder.getContext().setAuthentication(jwtAuthenticationToken);
+
+        // When - Then
         mockMvc.perform(put("/api/assignments/assignmentId/comments")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -444,8 +475,14 @@ class AssignmentControllerTests {
     @WithMockUser
     @Test
     void givenAssignmentIdAndInvalidCommentDto_whenUpdateAssignmentComments_thenReturnError() throws Exception {
+        // Given
         AssignmentCommentDto invalidComment = new AssignmentCommentDto();
 
+        // Mock JWT authentication
+        JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
+        SecurityContextHolder.getContext().setAuthentication(jwtAuthenticationToken);
+
+        // When - Then
         mockMvc.perform(put("/api/assignments/assignmentId/comments")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)

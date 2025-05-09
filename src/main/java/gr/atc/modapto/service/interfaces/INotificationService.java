@@ -1,7 +1,9 @@
 package gr.atc.modapto.service.interfaces;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
+import gr.atc.modapto.dto.AssignmentDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -16,6 +18,10 @@ public interface INotificationService {
 
     List<NotificationDto> retrieveUnreadNotificationsPerUserId(String userId);
 
+    Page<NotificationDto> retrieveAllNotificationsPerNotificationType(String notificationType, Pageable pageable);
+
+    Page<NotificationDto> retrieveAllNotificationsPerNotificationTypeAndUserId(String notificationType, String  userId, Pageable pageable);
+
     NotificationDto retrieveNotificationById(String notificationId);
 
     List<String> retrieveUserIdsPerPilot(String pilot);
@@ -24,5 +30,7 @@ public interface INotificationService {
 
     void updateNotificationStatus(String notificationId);
 
-    void deleteNotificiationById(String notificationId);
+    void deleteNotificationById(String notificationId);
+
+    CompletableFuture<Void> createNotificationAndNotifyUser(AssignmentDto assignmentDto);
 }

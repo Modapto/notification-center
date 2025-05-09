@@ -26,8 +26,14 @@ public class AssignmentDto {
     @JsonProperty("sourceUserId")
     private String sourceUserId;
 
+    @JsonProperty("sourceUser")
+    private String sourceUser;
+
     @JsonProperty("targetUserId")
     private String targetUserId;
+
+    @JsonProperty("targetUser")
+    private String targetUser;
 
     @ValidAssignmentStatus
     @JsonProperty("status")

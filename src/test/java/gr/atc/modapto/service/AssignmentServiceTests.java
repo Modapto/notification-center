@@ -5,24 +5,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
+import gr.atc.modapto.exception.CustomExceptions;
 import gr.atc.modapto.model.AssignmentComment;
 import gr.atc.modapto.service.interfaces.INotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,13 +29,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import gr.atc.modapto.dto.AssignmentCommentDto;
 import gr.atc.modapto.dto.AssignmentDto;
-import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.enums.AssignmentStatus;
 import gr.atc.modapto.enums.AssignmentType;
 import gr.atc.modapto.enums.MessagePriority;
@@ -53,9 +48,6 @@ class AssignmentServiceTests {
 
     @Mock
     private INotificationService notificationService;
-
-    @Mock
-    private WebSocketService webSocketService;
 
     @Mock
     private AssignmentRepository assignmentRepository;
@@ -96,7 +88,8 @@ class AssignmentServiceTests {
         assignmentDto.setId("1");
         assignmentDto.setDescription("Test Assignment");
         assignmentDto.setProductionModule("TestModule");
-        assignmentDto.setTargetUserId("testUser");
+        assignmentDto.setTargetUserId("testTargetUser");
+        assignmentDto.setSourceUserId("testSourceUser");
         assignmentDto.setComments(commentsDto);
         assignmentDto.setPriority(MessagePriority.HIGH.toString());
         assignmentDto.setStatus(AssignmentStatus.OPEN.toString());
@@ -106,7 +99,8 @@ class AssignmentServiceTests {
         assignment.setDescription("Test Assignment");
         assignment.setProductionModule("TestModule");
         assignment.setComments(comments);
-        assignment.setTargetUserId("testUser");
+        assignment.setTargetUserId("testTargetUser");
+        assignment.setSourceUserId("testSourceUser");
         assignment.setStatus(AssignmentStatus.OPEN.toString());
         assignmentDto.setPriority(MessagePriority.HIGH.toString());
         assignment.setTimestamp(LocalDateTime.now());
@@ -195,30 +189,77 @@ class AssignmentServiceTests {
 
     @DisplayName("Store Assignment: Success")
     @Test
-    void givenValidAssignmentDto_whenStoreAssignment_thenReturnAssignmentId() {
+    void givenValidAssignmentDto_whenStoreAssignment_thenReturnAssignmentIdAndTriggerNotification() {
         // Given
         when(modelMapper.map(any(AssignmentDto.class), eq(Assignment.class))).thenReturn(assignment);
         when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
+        when(notificationService.createNotificationAndNotifyUser(any(AssignmentDto.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         // When
         String result = assignmentService.storeAssignment(assignmentDto);
 
         // Then
         assertEquals("1", result);
+        verify(assignmentRepository, times(1)).save(any(Assignment.class));
+        verify(notificationService, times(1)).createNotificationAndNotifyUser(eq(assignmentDto));
     }
 
     @DisplayName("Update Assignment: Success")
     @Test
-    void givenExistingAssignment_whenUpdateAssignment_thenSaveUpdatedAssignment() {
+    void givenExistingAssignment_whenUpdateAssignment_thenSaveUpdatedAssignmentAndTriggerNotification() {
         // Given
-        when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
+        when(assignmentRepository.findById(eq("1"))).thenReturn(Optional.of(assignment));
         when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
+        when(notificationService.createNotificationAndNotifyUser(any(AssignmentDto.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
         // When
-        assignmentService.updateAssignment(assignmentDto);
+        assignmentService.updateAssignment(assignmentDto, "testSourceUser");
 
         // Then
         verify(assignmentRepository, times(1)).save(any(Assignment.class));
+        verify(notificationService, times(1)).createNotificationAndNotifyUser(eq(assignmentDto));
+    }
+
+    @DisplayName("Update Assignment: Failed / Invalid User")
+    @Test
+    void givenExistingAssignmentButInvalidUser_whenUpdateAssignment_thenReturnException() {
+        // Given
+        when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
+
+        // When - Then
+        CustomExceptions.UnauthorizedAssignmentUpdateException exception = assertThrows(CustomExceptions.UnauthorizedAssignmentUpdateException.class, () -> {
+            assignmentService.updateAssignment(assignmentDto, "wrongUser");
+        });
+
+        // Then
+        verify(assignmentRepository, times(0)).save(any(Assignment.class));;
+    }
+
+    @DisplayName("Update Assignment: Should Add System Comments on Status and Priority Change")
+    @Test
+    void givenAssignmentWithStatusAndPriority_whenUpdateAssignment_thenSystemCommentsAdded() {
+        // Given
+        assignmentDto.setStatus("Completed");
+        assignmentDto.setPriority("High");
+        when(assignmentRepository.findById(eq("1"))).thenReturn(Optional.of(assignment));
+        when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
+        when(notificationService.createNotificationAndNotifyUser(any(AssignmentDto.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        // When
+        assignmentService.updateAssignment(assignmentDto, "testSourceUser");
+
+        // Then
+        assertNotNull(assignmentDto.getComments());
+        assertTrue(assignmentDto.getComments().stream()
+                .anyMatch(c -> c.getComment().contains("Task status updated to 'Completed'")));
+        assertTrue(assignmentDto.getComments().stream()
+                .anyMatch(c -> c.getComment().contains("Task priority updated to 'High'")));
+
+        verify(assignmentRepository, times(1)).save(any(Assignment.class));
+        verify(notificationService, times(1)).createNotificationAndNotifyUser(eq(assignmentDto));
     }
 
     @Test
@@ -228,7 +269,7 @@ class AssignmentServiceTests {
         when(assignmentRepository.findById(anyString())).thenReturn(Optional.empty());
 
         DataNotFoundException exception = assertThrows(DataNotFoundException.class, () -> {
-            assignmentService.updateAssignment(assignmentDto);
+            assignmentService.updateAssignment(assignmentDto, "mockUserId");
         });
 
         // Then
@@ -244,10 +285,27 @@ class AssignmentServiceTests {
         // When
         when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
 
-        assignmentService.updateAssignmentComments("1", commentDto);
+        assignmentService.updateAssignmentComments("1", commentDto, "testSourceUser");
 
         // Then
         verify(assignmentRepository, times(1)).save(any(Assignment.class));;
+    }
+
+    @DisplayName("Update Assignment Comments: Failed / Invalid User")
+    @Test
+    void givenExistingAssignmentButInvalidUser_whenUpdateAssignmentComments_thenReturnException() {
+        // Given
+        AssignmentCommentDto commentDto = AssignmentCommentDto.builder().comment("Test comment").build();
+
+        // When
+        when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
+
+        CustomExceptions.UnauthorizedAssignmentUpdateException exception = assertThrows(CustomExceptions.UnauthorizedAssignmentUpdateException.class, () -> {
+            assignmentService.updateAssignmentComments("invalid", commentDto, "wrongUser");
+        });
+
+        // Then
+        verify(assignmentRepository, times(0)).save(any(Assignment.class));;
     }
 
     @DisplayName("Update Assignment Comments: Assignment Not Found")
@@ -260,28 +318,11 @@ class AssignmentServiceTests {
         when(assignmentRepository.findById("invalid")).thenReturn(Optional.empty());
 
         DataNotFoundException exception = assertThrows(DataNotFoundException.class, () -> {
-            assignmentService.updateAssignmentComments("invalid", commentDto);
+            assignmentService.updateAssignmentComments("invalid", commentDto, "mockUserId");
         });
 
         // Then
         assertEquals("Assignment with id: invalid not found in DB", exception.getMessage());
-    }
-
-    @DisplayName("Create Notification and Notify User: Success")
-    @Test
-    void whenCreateNotificationAndNotifyUser_thenNotificationSent() throws JsonProcessingException, ExecutionException, InterruptedException {
-        when(notificationService.storeNotification(any(NotificationDto.class))).thenReturn("1");
-        doNothing().when(webSocketService).notifyUsersAndRolesViaWebSocket(anyString(), anyString());
-
-        // When
-        CompletableFuture<Void> result = assignmentService.createNotificationAndNotifyUser(assignmentDto);
-
-        // Wait for the async operation to complete
-        result.get();
-
-        // Then
-        assertNotNull(result);
-        verify(webSocketService, times(1)).notifyUsersAndRolesViaWebSocket(anyString(), eq("testUser"));
     }
 
     @DisplayName("Delete Assignment: Success")

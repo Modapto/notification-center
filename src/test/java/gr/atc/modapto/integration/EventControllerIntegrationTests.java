@@ -93,7 +93,7 @@ class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", is("Events retrieved successfully!")))
-                .andExpect(jsonPath("$.data.results[0].productionModule", is("Test Production Module")));
+                .andExpect(jsonPath("$.data.results[0].module", is("Test Production Module")));
     }
 
 

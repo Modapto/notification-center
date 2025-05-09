@@ -26,6 +26,9 @@ public class NotificationDto{
     @JsonProperty("userId")
     private String userId;
 
+    @JsonProperty("user")
+    private String user;
+
     @JsonProperty("notificationType")
     private String notificationType;
 

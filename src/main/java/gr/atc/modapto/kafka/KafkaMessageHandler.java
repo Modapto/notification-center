@@ -86,6 +86,10 @@ public class KafkaMessageHandler {
             event.setTopic(messageKey);
         }
 
+        // Generate Description if not available
+        if (event.getDescription() == null && event.getEventType() != null)
+            event.setDescription("New system event: " + event.getEventType());
+
         log.info("Event Received: {}", event);
         // Store incoming Event
         try{
@@ -108,7 +112,7 @@ public class KafkaMessageHandler {
             // Store notifications per each User - Async
             createNotificationForUsers(eventNotification, userIds);
 
-            // Remove userId from notification and convert it to String
+            // Remove userId from notification and convert Object to JSON message
             eventNotification.setUserId(null);
             String notificationMessage = objectMapper.writeValueAsString(eventNotification);
             if (userRolesPerEventType.isEmpty() || userIds.isEmpty() || userRolesPerEventType.contains(GLOBAL_EVENT_MAPPINGS))

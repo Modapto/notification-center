@@ -3,11 +3,18 @@ package gr.atc.modapto.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import gr.atc.modapto.dto.AssignmentDto;
+import gr.atc.modapto.enums.NotificationType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,16 +23,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -52,7 +57,13 @@ class NotificationServiceTests {
     private ModelMapper modelMapper;
 
     @Mock
+    private WebSocketService webSocketService;
+
+    @Mock
     private RestTemplate restTemplate;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -134,6 +145,34 @@ class NotificationServiceTests {
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
         assertEquals("1", result.getContent().getFirst().getId());
+    }
+
+    @DisplayName("Create Notification and Notify User: Success")
+    @Test
+    void whenCreateNotificationAndNotifyUser_thenNotificationSent() throws ExecutionException, InterruptedException, JsonProcessingException {
+        // Given
+        Notification mockNotification = new Notification();
+        mockNotification.setId("1");
+
+        when(modelMapper.map(any(NotificationDto.class), eq(Notification.class))).thenReturn(mockNotification);
+        when(notificationRepository.save(any(Notification.class))).thenReturn(mockNotification);
+        when(objectMapper.writeValueAsString(any(NotificationDto.class))).thenReturn("{\"id\":\"1\"}");
+        doNothing().when(webSocketService).notifyUsersAndRolesViaWebSocket(anyString(), anyString());
+
+        AssignmentDto assignmentDto = new AssignmentDto();
+        assignmentDto.setTargetUserId("testUser");
+
+        // When
+        CompletableFuture<Void> result = notificationService.createNotificationAndNotifyUser(assignmentDto);
+        result.get();
+
+        // Then
+        assertNotNull(result);
+        verify(webSocketService, times(1))
+                .notifyUsersAndRolesViaWebSocket(anyString(), eq("testUser"));
+
+        verify(webSocketService, times(1))
+                .notifyUsersAndRolesViaWebSocket(anyString(), eq("SUPER_ADMIN"));
     }
 
     @DisplayName("Retrieve All Notifications: Mapping Exception")
@@ -254,5 +293,78 @@ class NotificationServiceTests {
 
         // Then
         assertNull(result);
+    }
+
+    @DisplayName("Delete Notification By ID: Success")
+    @Test
+    void givenExistingNotificationId_whenDeleteNotificationById_thenNotificationIsDeleted() {
+        // Given
+        when(notificationRepository.findById(anyString())).thenReturn(Optional.of(notification));
+
+        // When
+        notificationService.deleteNotificationById("1");
+
+        // Then
+        verify(notificationRepository, times(1)).delete(notification);
+    }
+
+    @DisplayName("Delete Notification by ID: Not Found")
+    @Test
+    void givenInvalidNotificationId_whenDeleteNotification_thenThrowDataNotFoundException() {
+        // Given
+        when(notificationRepository.findById(anyString())).thenReturn(Optional.empty());
+
+        // When - Then
+        DataNotFoundException exception = assertThrows(DataNotFoundException.class, () -> {
+            notificationService.deleteNotificationById("invalid");
+        });
+
+        assertEquals("Notification with id: invalid not found in DB", exception.getMessage());
+    }
+
+    @DisplayName("Retrieve All Notifications By Type: Success")
+    @Test
+    void givenNotificationType_whenRetrieveAllNotifications_thenReturnMappedPage() {
+        // Given
+        String notificationType = NotificationType.ASSIGNMENT.toString();
+        Pageable pageable = PageRequest.of(0, 5);
+        List<Notification> notifications = List.of(notification);
+        Page<Notification> notificationPage = new PageImpl<>(notifications, pageable, 1);
+
+        when(notificationRepository.findByNotificationType(notificationType, pageable))
+                .thenReturn(notificationPage);
+        when(modelMapper.map(notification, NotificationDto.class)).thenReturn(notificationDto);
+
+        // When
+        Page<NotificationDto> result = notificationService.retrieveAllNotificationsPerNotificationType(notificationType, pageable);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals(notificationDto, result.getContent().getFirst());
+    }
+
+    @DisplayName("Retrieve Notifications By Type And UserId: Success")
+    @Test
+    void givenNotificationTypeAndUserId_whenRetrieveNotifications_thenReturnMappedPage() {
+        // Given
+        String notificationType = NotificationType.ASSIGNMENT.toString();
+        String userId = "user123";
+        Pageable pageable = PageRequest.of(0, 5);
+        List<Notification> notifications = List.of(notification);
+        Page<Notification> notificationPage = new PageImpl<>(notifications, pageable, 1);
+
+        when(notificationRepository.findByNotificationTypeAndUserId(notificationType, userId, pageable))
+                .thenReturn(notificationPage);
+        when(modelMapper.map(notification, NotificationDto.class)).thenReturn(notificationDto);
+
+        // When
+        Page<NotificationDto> result = notificationService
+                .retrieveAllNotificationsPerNotificationTypeAndUserId(notificationType, userId, pageable);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals(notificationDto, result.getContent().getFirst());
     }
 }

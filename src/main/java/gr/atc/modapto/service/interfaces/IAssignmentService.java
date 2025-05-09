@@ -17,13 +17,11 @@ public interface IAssignmentService {
 
     AssignmentDto retrieveAssignmentById(String assignmentId);
 
-    void updateAssignment(AssignmentDto assignmentDto);
+    void updateAssignment(AssignmentDto assignmentDto, String userId);
 
     String storeAssignment(AssignmentDto assignmentDto);
 
-    CompletableFuture<Void> createNotificationAndNotifyUser(AssignmentDto assignmentDto);
-
-    void updateAssignmentComments(String assignmentId, AssignmentCommentDto assignmentComment);
+    void updateAssignmentComments(String assignmentId, AssignmentCommentDto assignmentComment, String userId);
 
     boolean deleteAssignmentById(String assignmentId);
 }

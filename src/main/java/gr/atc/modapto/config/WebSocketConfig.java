@@ -8,11 +8,8 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
-import lombok.extern.slf4j.Slf4j;
-
 @Configuration
 @EnableWebSocketMessageBroker
-@Slf4j
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Value("${spring.security.cors.domains}")
@@ -28,9 +25,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
         String[] corsDomains = rawCorsDomains.split(",");
-        log.info("CORS domains for WebSocket: {}", (Object) corsDomains);
 
         registry.addEndpoint("/notifications/websocket").setAllowedOrigins(corsDomains);
         registry.addEndpoint("/notifications/websocket").setAllowedOrigins(corsDomains).withSockJS();
     }
+
 }

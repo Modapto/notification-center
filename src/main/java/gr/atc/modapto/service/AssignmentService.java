@@ -7,24 +7,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import gr.atc.modapto.exception.CustomExceptions;
 import org.modelmapper.MappingException;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import gr.atc.modapto.dto.AssignmentCommentDto;
 import gr.atc.modapto.dto.AssignmentDto;
-import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.enums.AssignmentStatus;
 import gr.atc.modapto.enums.AssignmentType;
-import gr.atc.modapto.enums.NotificationStatus;
-import gr.atc.modapto.enums.NotificationType;
 import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
 import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.model.Assignment;
@@ -42,19 +35,15 @@ public class AssignmentService implements IAssignmentService {
 
     private final INotificationService notificationService;
 
-    private final WebSocketService webSocketService;
-
     private final AssignmentRepository assignmentRepository;
-
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private final ModelMapper modelMapper;
 
     private static final String ASSIGNMENTS_MAPPING_ERROR = "Error mapping Assignments to Dto - Error: ";
 
     private static final String ASSIGNMENT_MAPPING_ERROR = "Error mapping Assignment to Dto - Error: ";
-    
-    private static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
+
+    private static final String USER_NOT_INVOLVED_IN_ASSIGNMENT_ERROR = "User not involved in assignment";
 
     /**
      * Retrieve all Assignments
@@ -151,21 +140,76 @@ public class AssignmentService implements IAssignmentService {
         }
     }
 
+    /**
+     * Update an Assignment in DB and generate a Notification (if applicable)
+     *
+     * @param assignmentDto : Assignment information to be updated\
+     * @param userId : UserID made the request
+     */
     @Override
-    public void updateAssignment(AssignmentDto assignmentDto) {
+    public void updateAssignment(AssignmentDto assignmentDto, String userId) {
         try{
+            // Generate System Comments and Update Description
+            AssignmentDto updatedAssignment = generateSystemCommentsAndUpdateDescription(assignmentDto);
+
             // Try to locate if assignment exists
-            Optional<Assignment> existingAssignment = assignmentRepository.findById(assignmentDto.getId());
+            Optional<Assignment> existingAssignment = assignmentRepository.findById(updatedAssignment.getId());
             if (existingAssignment.isEmpty())
-                throw new DataNotFoundException("Assignment with id: " + assignmentDto.getId() + " not found in DB");
+                throw new DataNotFoundException("Assignment with id: " + updatedAssignment.getId() + " not found in DB");
+
+            // Validate the user is involved in the Assignment
+            if (userIsNotInvolvedInAssignment(existingAssignment.get(), userId))
+                throw new CustomExceptions.UnauthorizedAssignmentUpdateException(USER_NOT_INVOLVED_IN_ASSIGNMENT_ERROR);
 
             // Update assignment and save it to repository
-            Assignment newAssignment = Assignment.updateExistingAssignment(existingAssignment.get(), assignmentDto);
+            Assignment newAssignment = Assignment.updateExistingAssignment(existingAssignment.get(), updatedAssignment);
             assignmentRepository.save(newAssignment);
+
+            // Create Notification and Notify relevant user asynchronously
+            generateNotificationFromAssignment(assignmentDto);
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
         }
+    }
 
+    /**
+     * Generate system comments for assignment status and priority changes
+     *
+     * @param assignmentDto: DTO of assignment
+     * @return AssignmentDto : Updated assignment with system comments
+     */
+    private AssignmentDto generateSystemCommentsAndUpdateDescription(AssignmentDto assignmentDto) {
+        List<AssignmentCommentDto> comments = assignmentDto.getComments() != null
+                ? new ArrayList<>(assignmentDto.getComments())
+                : new ArrayList<>();
+        String statusDescription = null;
+
+        // Check whether assignment status has been changed
+        if (assignmentDto.getStatus() != null){
+            statusDescription = "Task status changed to '" + assignmentDto.getStatus() + "'";
+            AssignmentCommentDto statusComment = AssignmentCommentDto.builder()
+                    .comment("Task status updated to '" + assignmentDto.getStatus() + "'")
+                    .build();
+            comments.add(statusComment);
+        }
+
+        // Check whether assignment priority has been changed
+        if (assignmentDto.getPriority() != null) {
+            if (statusDescription == null)
+                statusDescription = "Task priority change to" + "'" + assignmentDto.getPriority() + "'";
+            else
+                statusDescription += " and priority changed to '" + assignmentDto.getPriority() + "'";
+
+            AssignmentCommentDto priorityComment = AssignmentCommentDto.builder()
+                    .comment("Task priority updated to '" + assignmentDto.getPriority() + "'")
+                    .build();
+            comments.add(priorityComment);
+        }
+
+        // Update description and comments
+        assignmentDto.setDescription(statusDescription);
+        assignmentDto.setComments(comments);
+        return assignmentDto;
     }
 
     /**
@@ -173,14 +217,19 @@ public class AssignmentService implements IAssignmentService {
      *
      * @param assignmentId : ID of assignment
      * @param assignmentComment : Assignment Comment Dto depending on the user who commented
+     * @param userId : UserID made the request
      */
     @Override
-    public void updateAssignmentComments(String assignmentId, AssignmentCommentDto assignmentComment) {
+    public void updateAssignmentComments(String assignmentId, AssignmentCommentDto assignmentComment, String userId) {
         try{
             // Try to locate if assignment exists
             Optional<Assignment> existingAssignment = assignmentRepository.findById(assignmentId);
             if (existingAssignment.isEmpty())
                 throw new DataNotFoundException("Assignment with id: " + assignmentId + " not found in DB");
+
+            // Validate the user is involved in the Assignment
+            if (userIsNotInvolvedInAssignment(existingAssignment.get(), userId))
+                throw new CustomExceptions.UnauthorizedAssignmentUpdateException(USER_NOT_INVOLVED_IN_ASSIGNMENT_ERROR);
 
             // Update assignment comments
             Assignment updatedAssignment = existingAssignment.get();
@@ -192,6 +241,13 @@ public class AssignmentService implements IAssignmentService {
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
         }
+    }
+
+    /*
+     * Helper method to ensure if a user requesting an assignment update is involved in the assignment
+     */
+    private boolean userIsNotInvolvedInAssignment(Assignment assignment, String userId) {
+        return !assignment.getSourceUserId().equals(userId) && !assignment.getTargetUserId().equals(userId);
     }
 
     /**
@@ -208,55 +264,34 @@ public class AssignmentService implements IAssignmentService {
             assignment.setStatus(AssignmentStatus.OPEN.toString());
             assignment.setTimestamp(LocalDateTime.now());
             assignment.setTimestampUpdated(LocalDateTime.now());
-            return assignmentRepository.save(assignment).getId();
+
+            String assignmentId = assignmentRepository.save(assignment).getId();
+            if (assignmentId != null)
+                // Create Notification and Notify relevant user asynchronously
+                generateNotificationFromAssignment(assignmentDto);
+
+            return assignmentId;
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
         }
     }
 
     /**
-     * Create async a notification connected to an assignment and notify user through WebSockets
+     * Helper method to async create a notification from a created or updated assignment
      *
-     * @param assignment: Assignment DTO
+     * @param assignmentDto : Assignment
      */
-    @Async("asyncPoolTaskExecutor")
-    @Override
-    public CompletableFuture<Void> createNotificationAndNotifyUser(AssignmentDto assignment) {
-        return CompletableFuture.runAsync(() -> {
-            try {
-                // Create the notification
-                NotificationDto assignmentNotification = NotificationDto.builder()
-                        .notificationType(NotificationType.ASSIGNMENT.toString())
-                        .notificationStatus(NotificationStatus.UNREAD.toString())
-                        .messageStatus(assignment.getStatus())
-                        .productionModule(assignment.getProductionModule())
-                        .userId(assignment.getTargetUserId())
-                        .smartService(null)
-                        .relatedAssignment(assignment.getId())
-                        .relatedEvent(null)
-                        .timestamp(LocalDateTime.now())
-                        .priority(assignment.getPriority())
-                        .description(assignment.getDescription())
-                        .build();
+    private void generateNotificationFromAssignment(AssignmentDto assignmentDto) {
+        // Create Notification and Notify relevant user asynchronously
+        CompletableFuture<Void> notificationCreationAsync = notificationService.createNotificationAndNotifyUser(assignmentDto);
 
-                // Store Notification
-                String notificationId = notificationService.storeNotification(assignmentNotification);
-                if (notificationId == null){
-                    log.error("Notification could not be stored in DB");
-                    return;
-                }
-
-                assignmentNotification.setId(notificationId);
-                String assignmentMessage = objectMapper.writeValueAsString(assignmentNotification);
-                // Send notification through WebSocket
-                webSocketService.notifyUsersAndRolesViaWebSocket(assignmentMessage, assignmentNotification.getUserId());
-
-                // Send notification through WebSockets for Super-Admins
-                webSocketService.notifyUsersAndRolesViaWebSocket(assignmentMessage, SUPER_ADMIN_ROLE);
-            } catch (JsonProcessingException e){
-                log.error("Error processing Notification Dto to JSON - Error: {}", e.getMessage());
-            }
-        });
+        // Log the notification creation process
+        CompletableFuture.allOf(notificationCreationAsync)
+                .thenRun(() -> log.info("Notification creation process completed"))
+                .exceptionally(ex -> {
+                    log.error("Notification creation process failed", ex);
+                    return null;
+                });
     }
 
     /**

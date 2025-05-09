@@ -25,6 +25,12 @@ public class Assignment extends Message {
     @Field(type = FieldType.Keyword, name ="sourceUserId")
     private String sourceUserId;
 
+    @Field(type = FieldType.Keyword, name ="sourceUser")
+    private String sourceUser;
+
+    @Field(type = FieldType.Keyword, name ="targetUser")
+    private String targetUser;
+
     @Field(type = FieldType.Keyword, name ="targetUserId")
     private String targetUserId;
 
