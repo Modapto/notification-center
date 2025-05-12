@@ -252,9 +252,9 @@ public class NotificationService implements INotificationService {
             headers.setBearerAuth(token);
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<BaseAppResponse<List<String>>> entity = new HttpEntity<>(headers);
-            ResponseEntity<BaseAppResponse<List<String>>> response = restTemplate.exchange(
-                    userManagerUrl.concat("/api/users/ids/pilot/").concat(pilot),
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<BaseAppResponse<List<UserDto>>> response = restTemplate.exchange(
+                    userManagerUrl.concat("/api/users/pilot/").concat(pilot),
                     HttpMethod.GET,
                     entity,
                     new ParameterizedTypeReference<>() {
@@ -262,11 +262,14 @@ public class NotificationService implements INotificationService {
             );
 
             return Optional.of(response)
-                    .filter(resp -> resp.getStatusCode().is2xxSuccessful())
-                    .map(ResponseEntity::getBody)
-                    .filter(body -> body.getData() != null)
-                    .map(BaseAppResponse::getData)
-                    .orElse(Collections.emptyList());
+                        .filter(resp -> resp.getStatusCode().is2xxSuccessful())
+                        .map(ResponseEntity::getBody)
+                        .map(BaseAppResponse::getData)
+                        .map(dataList -> dataList.stream()
+                                .map(UserDto::getUserId)
+                                .filter(Objects::nonNull)
+                                .toList())
+                        .orElse(Collections.emptyList());
         } catch (RestClientException e) {
             log.error("Unable to retrieve user IDs for pilot {} -  Error: {}", pilot, e.getMessage());
             return Collections.emptyList();
