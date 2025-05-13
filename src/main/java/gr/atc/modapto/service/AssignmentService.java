@@ -266,9 +266,12 @@ public class AssignmentService implements IAssignmentService {
             assignment.setTimestampUpdated(LocalDateTime.now());
 
             String assignmentId = assignmentRepository.save(assignment).getId();
-            if (assignmentId != null)
+            if (assignmentId != null){
                 // Create Notification and Notify relevant user asynchronously
+                assignmentDto.setId(assignmentId);
+                assignmentDto.setStatus(AssignmentStatus.OPEN.toString());
                 generateNotificationFromAssignment(assignmentDto);
+            }
 
             return assignmentId;
         } catch (MappingException e) {
