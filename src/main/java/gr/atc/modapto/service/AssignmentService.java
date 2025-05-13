@@ -166,7 +166,7 @@ public class AssignmentService implements IAssignmentService {
             assignmentRepository.save(newAssignment);
 
             // Create Notification and Notify relevant user asynchronously
-            generateNotificationFromAssignment(assignmentDto);
+            generateNotificationFromAssignment(modelMapper.map(newAssignment, AssignmentDto.class));
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
         }
