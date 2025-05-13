@@ -165,6 +165,10 @@ public class AssignmentService implements IAssignmentService {
             Assignment newAssignment = Assignment.updateExistingAssignment(existingAssignment.get(), updatedAssignment);
             assignmentRepository.save(newAssignment);
 
+            // If the Target User has updated the assignment then send the notification to the Source User (mark him as Target)
+            if (newAssignment.getTargetUserId().equals(userId))
+                newAssignment.setTargetUserId(newAssignment.getSourceUserId());
+            
             // Create Notification and Notify relevant user asynchronously
             generateNotificationFromAssignment(modelMapper.map(newAssignment, AssignmentDto.class));
         } catch (MappingException e) {
