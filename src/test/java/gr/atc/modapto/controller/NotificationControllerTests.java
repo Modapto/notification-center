@@ -1,6 +1,7 @@
 package gr.atc.modapto.controller;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -98,7 +99,7 @@ class NotificationControllerTests {
                 .notificationStatus(NotificationStatus.UNREAD.toString())
                 .sourceComponent("Test Component")
                 .productionModule("Test Production Module")
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                 .priority(MessagePriority.MID.toString())
                 .description("Test")
                 .build();

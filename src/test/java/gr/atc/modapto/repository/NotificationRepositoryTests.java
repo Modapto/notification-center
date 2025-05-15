@@ -19,6 +19,7 @@ import org.springframework.data.elasticsearch.core.query.IndexQueryBuilder;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -79,7 +80,7 @@ class NotificationRepositoryTests extends SetupTestContainersEnvironment {
         notification.setProductionModule(module);
         notification.setNotificationStatus(status);
         notification.setNotificationType(type);
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
         return notification;
     }
 

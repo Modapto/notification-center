@@ -1,6 +1,7 @@
 package gr.atc.modapto.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -69,7 +70,9 @@ class NotificationServiceTests {
     private NotificationService notificationService;
 
     private NotificationDto notificationDto;
+    private NotificationDto superAdminNotificationDto;
     private Notification notification;
+    private Notification superAdminNotification;
 
     private static final String KC_URL = "http://localhost:8080/api/keycloak";
     private static final String TOKEN_URL = "http://localhost:9080/api/token";
@@ -87,7 +90,7 @@ class NotificationServiceTests {
         // Initialize data
         notificationDto = NotificationDto.builder()
             .id("1")
-            .timestamp(LocalDateTime.now())
+            .timestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC))
             .userId("user1")
             .notificationStatus(NotificationStatus.UNREAD.toString())
             .description("Test Notification")
@@ -97,8 +100,24 @@ class NotificationServiceTests {
         notification.setNotificationStatus(NotificationStatus.UNREAD.toString());
         notification.setId("1");
         notification.setUserId("user1");
-        notification.setTimestamp(LocalDateTime.now());
+        notification.setTimestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC));
         notification.setDescription("Test Notification");
+
+
+        superAdminNotificationDto = NotificationDto.builder()
+                .id("2")
+                .timestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC))
+                .userId("SUPER_ADMIN")
+                .notificationStatus(NotificationStatus.UNREAD.toString())
+                .description("Test Notification")
+                .build();
+
+        superAdminNotification = new Notification();
+        superAdminNotification.setNotificationStatus(NotificationStatus.UNREAD.toString());
+        superAdminNotification.setId("2");
+        superAdminNotification.setUserId("SUPER_ADMIN");
+        superAdminNotification.setTimestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC));
+        superAdminNotification.setDescription("Test Notification");
 
         // Clear mock interactions
         reset(notificationRepository, modelMapper, restTemplate);
@@ -134,9 +153,9 @@ class NotificationServiceTests {
     @Test
     void whenRetrieveAllNotifications_thenReturnListOfNotificationDtos() {
         // Given
-        Page<Notification> notifications = new PageImpl<>(List.of(notification));
-        when(notificationRepository.findAll(any(Pageable.class))).thenReturn(notifications);
-        when(modelMapper.map(notification, NotificationDto.class)).thenReturn(notificationDto);
+        Page<Notification> notifications = new PageImpl<>(List.of(superAdminNotification));
+        when(notificationRepository.findByUserId(anyString(), any(Pageable.class))).thenReturn(notifications);
+        when(modelMapper.map(superAdminNotification, NotificationDto.class)).thenReturn(superAdminNotificationDto);
 
         // When
         Page<NotificationDto> result = notificationService.retrieveAllNotifications(Pageable.ofSize(10));
@@ -144,7 +163,7 @@ class NotificationServiceTests {
         // Then
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
-        assertEquals("1", result.getContent().getFirst().getId());
+        assertEquals("2", result.getContent().getFirst().getId());
     }
 
     @DisplayName("Create Notification and Notify User: Success")
@@ -179,9 +198,9 @@ class NotificationServiceTests {
     @Test
     void whenRetrieveAllNotifications_thenThrowModelMappingException() {
         // Given
-        Page<Notification> notifications = new PageImpl<>(List.of(notification));
-        when(notificationRepository.findAll(any(Pageable.class))).thenReturn(notifications);
-        when(modelMapper.map(notification, NotificationDto.class)).thenThrow(ModelMappingException.class);
+        Page<Notification> notifications = new PageImpl<>(List.of(superAdminNotification));
+        when(notificationRepository.findByUserId(anyString(), any(Pageable.class))).thenReturn(notifications);
+        when(modelMapper.map(superAdminNotification, NotificationDto.class)).thenThrow(ModelMappingException.class);
 
         // When - Then
         assertThrows(ModelMappingException.class, () -> {
@@ -260,7 +279,7 @@ class NotificationServiceTests {
         when(notificationRepository.findById(anyString())).thenReturn(Optional.of(notification));
 
         // When
-        notificationService.updateNotificationStatus("1");
+        notificationService.updateNotificationStatusToRead("1");
 
         // Then
         verify(notificationRepository, times(1)).save(notification);

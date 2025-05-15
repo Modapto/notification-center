@@ -19,6 +19,7 @@ import org.springframework.data.elasticsearch.core.query.IndexQueryBuilder;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -83,8 +84,8 @@ class AssignmentRepositoryTests extends SetupTestContainersEnvironment {
         assignment.setTargetUserId(targetUserId);
         assignment.setStatus(status);
         assignment.setComments(List.of(comment));
-        assignment.setTimestamp(LocalDateTime.now());
-        assignment.setTimestampUpdated(LocalDateTime.now());
+        assignment.setTimestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
+        assignment.setTimestampUpdated(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
         assignment.setDescription("Test Assignment");
         assignment.setDescription("Test Description");
         return assignment;

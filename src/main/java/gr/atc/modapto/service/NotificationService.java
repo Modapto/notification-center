@@ -1,6 +1,7 @@
 package gr.atc.modapto.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -114,7 +115,7 @@ public class NotificationService implements INotificationService {
     }
 
     /**
-     * Retrieve all notifications
+     * Retrieve all notifications for Super-Admins
      *
      * @param pageable : Pagination Attributes
      * @return List<NotificationDto>
@@ -122,7 +123,7 @@ public class NotificationService implements INotificationService {
     @Override
     public Page<NotificationDto> retrieveAllNotifications(Pageable pageable) {
         try {
-            Page<Notification> notificationPage = notificationRepository.findAll(pageable);
+            Page<Notification> notificationPage = notificationRepository.findByUserId(SUPER_ADMIN_ROLE, pageable);
             return notificationPage.map(notification -> modelMapper.map(notification, NotificationDto.class));
         } catch (MappingException e) {
             throw new ModelMappingException(MAPPING_ERROR + e.getMessage());
@@ -222,7 +223,7 @@ public class NotificationService implements INotificationService {
      * @param notificationId : ID of notification
      */
     @Override
-    public void updateNotificationStatus(String notificationId) {
+    public void updateNotificationStatusToRead(String notificationId) {
         Optional<Notification> optionalNotification = notificationRepository.findById(notificationId);
         if (optionalNotification.isEmpty())
             throw new DataNotFoundException("Notification with id: " + notificationId + " not found in DB");
@@ -262,14 +263,14 @@ public class NotificationService implements INotificationService {
             );
 
             return Optional.of(response)
-                        .filter(resp -> resp.getStatusCode().is2xxSuccessful())
-                        .map(ResponseEntity::getBody)
-                        .map(BaseAppResponse::getData)
-                        .map(dataList -> dataList.stream()
-                                .map(UserDto::getUserId)
-                                .filter(Objects::nonNull)
-                                .toList())
-                        .orElse(Collections.emptyList());
+                    .filter(resp -> resp.getStatusCode().is2xxSuccessful())
+                    .map(ResponseEntity::getBody)
+                    .map(BaseAppResponse::getData)
+                    .map(dataList -> dataList.stream()
+                            .map(UserDto::getUserId)
+                            .filter(Objects::nonNull)
+                            .toList())
+                    .orElse(Collections.emptyList());
         } catch (RestClientException e) {
             log.error("Unable to retrieve user IDs for pilot {} -  Error: {}", pilot, e.getMessage());
             return Collections.emptyList();
@@ -370,40 +371,51 @@ public class NotificationService implements INotificationService {
     @Override
     public CompletableFuture<Void> createNotificationAndNotifyUser(AssignmentDto assignment) {
         return CompletableFuture.runAsync(() -> {
-            try {
                 // Create the notification
                 NotificationDto assignmentNotification = NotificationDto.builder()
                         .notificationType(NotificationType.ASSIGNMENT.toString())
                         .notificationStatus(NotificationStatus.UNREAD.toString())
                         .messageStatus(assignment.getStatus())
                         .productionModule(assignment.getProductionModule())
-                        .userId(assignment.getTargetUserId())
-                        .user(assignment.getTargetUser())
+                        .userId(null)
+                        .user(null)
                         .smartService(null)
                         .relatedAssignment(assignment.getId())
                         .relatedEvent(null)
-                        .timestamp(LocalDateTime.now())
+                        .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                         .priority(assignment.getPriority())
                         .description(assignment.getDescription())
                         .build();
 
-                // Store Notification
-                String notificationId = storeNotification(assignmentNotification);
-                if (notificationId == null){
-                    log.error("Notification could not be stored in DB");
-                    return;
-                }
+                // Store Notification for Associated User
+                storeNotificationForEachAssociatedUserAndNotifyUser(assignment.getTargetUserId(), assignment.getTargetUser(), assignmentNotification);
 
-                assignmentNotification.setId(notificationId);
-                String assignmentMessage = objectMapper.writeValueAsString(assignmentNotification);
-                // Send notification through WebSocket
-                webSocketService.notifyUsersAndRolesViaWebSocket(assignmentMessage, assignmentNotification.getUserId());
-
-                // Send notification through WebSockets for Super-Admins
-                webSocketService.notifyUsersAndRolesViaWebSocket(assignmentMessage, SUPER_ADMIN_ROLE);
-            } catch (JsonProcessingException e){
-                log.error("Error processing Notification Dto to JSON - Error: {}", e.getMessage());
-            }
+                // Store Notification for Super Admin
+                storeNotificationForEachAssociatedUserAndNotifyUser(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE, assignmentNotification);
         });
+    }
+
+    /*
+     * Helper method to Store Assignment Notification per Each User and Notify User
+     */
+    private void storeNotificationForEachAssociatedUserAndNotifyUser(String userId, String userFullName, NotificationDto notification){
+        try {
+            // Update Notification with the Associated User
+            notification.setUserId(userId);
+            notification.setUser(userFullName);
+
+            String notificationId = storeNotification(notification);
+            if (notificationId == null){
+                log.error("Notification could not be stored in DB");
+                return;
+            }
+
+            notification.setId(notificationId);
+            String assignmentMessage = objectMapper.writeValueAsString(notification);
+            // Send notification through WebSocket
+            webSocketService.notifyUsersAndRolesViaWebSocket(assignmentMessage, userId);
+        } catch (JsonProcessingException e){
+            log.error("Error processing Notification Dto to JSON - Error: {}", e.getMessage());
+        }
     }
 }

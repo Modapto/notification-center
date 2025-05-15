@@ -1,6 +1,7 @@
 package gr.atc.modapto.controller;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,9 +114,9 @@ class AssignmentControllerTests {
                 .sourceUserId("sourceUser")
                 .targetUserId("targetUser")
                 .comments(List.of(testComment))
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                 .status(AssignmentStatus.OPEN.toString())
-                .timestampUpdated(LocalDateTime.now())
+                .timestampUpdated(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                 .description("Test")
                 .build();
 

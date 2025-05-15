@@ -1,5 +1,7 @@
 package gr.atc.modapto.enums;
 
+import jakarta.validation.ValidationException;
+
 /*
  * Enum for Assignment Status
  */
@@ -13,6 +15,15 @@ public enum AssignmentStatus {
 
     AssignmentStatus(final String status) {
         this.status = status;
+    }
+
+    public static AssignmentStatus fromString(final String input) {
+        for (AssignmentStatus assignmentStatus : AssignmentStatus.values()) {
+            if (assignmentStatus.status.equalsIgnoreCase(input)) {
+                return assignmentStatus;
+            }
+        }
+        throw new ValidationException("Unknown assignment status: " + input);
     }
 
     @Override

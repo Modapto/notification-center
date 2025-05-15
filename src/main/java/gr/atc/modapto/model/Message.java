@@ -1,6 +1,6 @@
 package gr.atc.modapto.model;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,8 +22,8 @@ public class Message {
     @Field(type = FieldType.Keyword, name = "productionModule")
     private String productionModule;
 
-    @Field(type = FieldType.Date, name = "timestamp", format = DateFormat.date_hour_minute_second)
-    private LocalDateTime timestamp;
+    @Field(type = FieldType.Date, name = "timestamp", format = DateFormat.strict_date_optional_time)
+    private OffsetDateTime timestamp;
 
     @Field(type = FieldType.Keyword, name ="priority")
     private String priority;

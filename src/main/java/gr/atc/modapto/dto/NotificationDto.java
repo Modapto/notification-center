@@ -1,6 +1,6 @@
 package gr.atc.modapto.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -57,9 +57,9 @@ public class NotificationDto{
     @JsonProperty("smartService")
     private String smartService;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private OffsetDateTime timestamp;
 
     @ValidPriority
     @JsonProperty("priority")

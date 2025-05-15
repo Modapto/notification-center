@@ -1,6 +1,7 @@
 package gr.atc.modapto.controller;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -101,7 +102,7 @@ class EventControllerTests {
                 .smartService("Test Smart Service")
                 .productionModule("Test Production Module")
                 .eventType(null)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                 .description(null)
                 .priority(MessagePriority.HIGH.toString())
                 .build();

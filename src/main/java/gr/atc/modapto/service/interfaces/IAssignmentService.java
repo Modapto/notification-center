@@ -1,7 +1,5 @@
 package gr.atc.modapto.service.interfaces;
 
-import java.util.concurrent.CompletableFuture;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

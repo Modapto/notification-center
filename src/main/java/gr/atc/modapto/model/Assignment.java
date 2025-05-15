@@ -1,6 +1,6 @@
 package gr.atc.modapto.model;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import gr.atc.modapto.dto.AssignmentDto;
@@ -40,8 +40,8 @@ public class Assignment extends Message {
     @Field(type = FieldType.Nested, name = "comments")
     private List<AssignmentComment> comments;
 
-    @Field(type = FieldType.Date, name = "timestampUpdated", format = DateFormat.date_hour_minute_second)
-    private LocalDateTime timestampUpdated;
+    @Field(type = FieldType.Date, name = "timestampUpdated", format = DateFormat.strict_date_optional_time)
+    private OffsetDateTime timestampUpdated;
 
     /**
      * Update specific fields of an existing Assignment

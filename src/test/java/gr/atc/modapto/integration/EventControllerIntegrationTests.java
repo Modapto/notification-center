@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -64,7 +65,7 @@ class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
                 .smartService("Test Smart Service")
                 .productionModule("Test Production Module")
                 .eventType(null)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                 .description(null)
                 .priority(MessagePriority.HIGH.toString())
                 .build();

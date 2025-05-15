@@ -1,6 +1,7 @@
 package gr.atc.modapto.controller;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 
@@ -248,7 +249,7 @@ public class AssignmentController {
         // Retrieve current's user ID
         String userId = JwtUtils.extractUserId(jwt);
 
-        assignmentComment.setDatetime(LocalDateTime.now().withNano(0));
+        assignmentComment.setDatetime(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
         assignmentService.updateAssignmentComments(assignmentId, assignmentComment, userId);
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment comments updated successfully!"), HttpStatus.OK);
     }

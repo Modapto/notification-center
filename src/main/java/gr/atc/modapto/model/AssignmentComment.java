@@ -1,6 +1,6 @@
 package gr.atc.modapto.model;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,8 +16,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AssignmentComment {
 
-    @Field(type = FieldType.Date, name = "datetime", format = DateFormat.date_hour_minute_second)
-    private LocalDateTime datetime;
+    @Field(type = FieldType.Date, name = "datetime", format = DateFormat.strict_date_optional_time)
+    private OffsetDateTime datetime;
 
     @Field(type = FieldType.Keyword, name ="comment")
     private String comment;

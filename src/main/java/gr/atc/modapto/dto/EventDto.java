@@ -1,14 +1,15 @@
 package gr.atc.modapto.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import gr.atc.modapto.util.UtcOffsetDateTimeDeserializer;
 import gr.atc.modapto.validation.ValidPriority;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -32,9 +33,9 @@ public class EventDto {
     @JsonProperty("module")
     private String productionModule;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonDeserialize(using = UtcOffsetDateTimeDeserializer.class)
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private OffsetDateTime timestamp;
 
     @NotNull(message = "Priority cannot be empty")
     @ValidPriority

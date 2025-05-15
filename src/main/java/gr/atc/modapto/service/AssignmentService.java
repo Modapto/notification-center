@@ -1,12 +1,14 @@
 package gr.atc.modapto.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import gr.atc.modapto.enums.MessagePriority;
 import gr.atc.modapto.exception.CustomExceptions;
 import org.modelmapper.MappingException;
 import org.modelmapper.ModelMapper;
@@ -168,7 +170,7 @@ public class AssignmentService implements IAssignmentService {
             // If the Target User has updated the assignment then send the notification to the Source User (mark him as Target)
             if (newAssignment.getTargetUserId().equals(userId))
                 newAssignment.setTargetUserId(newAssignment.getSourceUserId());
-            
+
             // Create Notification and Notify relevant user asynchronously
             generateNotificationFromAssignment(modelMapper.map(newAssignment, AssignmentDto.class));
         } catch (MappingException e) {
@@ -190,6 +192,8 @@ public class AssignmentService implements IAssignmentService {
 
         // Check whether assignment status has been changed
         if (assignmentDto.getStatus() != null){
+            // Format Assignment Status - Uniform Case
+            assignmentDto.setStatus(AssignmentStatus.fromString(assignmentDto.getStatus()).toString());
             statusDescription = "Task status changed to '" + assignmentDto.getStatus() + "'";
             AssignmentCommentDto statusComment = AssignmentCommentDto.builder()
                     .comment("Task status updated to '" + assignmentDto.getStatus() + "'")
@@ -199,6 +203,8 @@ public class AssignmentService implements IAssignmentService {
 
         // Check whether assignment priority has been changed
         if (assignmentDto.getPriority() != null) {
+            // Format Assignment Priority - Uniform Case
+            assignmentDto.setPriority(MessagePriority.valueOf(assignmentDto.getPriority().toUpperCase()).toString());
             if (statusDescription == null)
                 statusDescription = "Task priority change to" + "'" + assignmentDto.getPriority() + "'";
             else
@@ -238,9 +244,8 @@ public class AssignmentService implements IAssignmentService {
             // Update assignment comments
             Assignment updatedAssignment = existingAssignment.get();
 
-            LocalDateTime timeOfLastUpdate = LocalDateTime.now();
             updatedAssignment.getComments().add(AssignmentComment.convertToAssignmentComment(assignmentComment));
-            updatedAssignment.setTimestampUpdated(timeOfLastUpdate);
+            updatedAssignment.setTimestampUpdated(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
             assignmentRepository.save(updatedAssignment);
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
@@ -263,14 +268,18 @@ public class AssignmentService implements IAssignmentService {
     @Override
     public String storeAssignment(AssignmentDto assignmentDto) {
         try {
-            // Create Assignment and set the initial fields
-            Assignment assignment = modelMapper.map(assignmentDto, Assignment.class);
-            assignment.setStatus(AssignmentStatus.OPEN.toString());
-            assignment.setTimestamp(LocalDateTime.now());
-            assignment.setTimestampUpdated(LocalDateTime.now());
+            // Set the initial fields
+            assignmentDto.setStatus(AssignmentStatus.OPEN.toString());
+            assignmentDto.setTimestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
+            assignmentDto.setTimestampUpdated(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
+            // Format Assignment Priority - Uniform Case
+            if (assignmentDto.getPriority() != null)
+                assignmentDto.setPriority(MessagePriority.valueOf(assignmentDto.getPriority().toUpperCase()).toString());
+            else
+                assignmentDto.setPriority(MessagePriority.LOW.toString());
 
-            String assignmentId = assignmentRepository.save(assignment).getId();
-            if (assignmentId != null){
+            String assignmentId = assignmentRepository.save(modelMapper.map(assignmentDto, Assignment.class)).getId();
+            if (assignmentId != null) {
                 // Create Notification and Notify relevant user asynchronously
                 assignmentDto.setId(assignmentId);
                 assignmentDto.setStatus(AssignmentStatus.OPEN.toString());

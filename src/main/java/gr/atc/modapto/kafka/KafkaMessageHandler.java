@@ -1,6 +1,8 @@
 package gr.atc.modapto.kafka;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 
 import gr.atc.modapto.enums.MessagePriority;
@@ -64,7 +66,7 @@ public class KafkaMessageHandler {
         this.eventService = eventService;
         this.notificationService = notificationService;
         this.webSocketService = webSocketService;
-        this.eventPublisher=eventPublisher;
+        this.eventPublisher = eventPublisher;
         this.objectMapper = objectMapper;
     }
 
@@ -74,28 +76,22 @@ public class KafkaMessageHandler {
      * @param event: Event occurred in MODAPTO
      */
     @KafkaListener(topics = "#{'${kafka.topics}'.split(',')}", groupId = "${spring.kafka.consumer.group-id}")
-    public void consume(EventDto event, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic, @Header(value = KafkaHeaders.RECEIVED_KEY, required = false) String messageKey){
+    public void consume(EventDto event, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic, @Header(value = KafkaHeaders.RECEIVED_KEY, required = false) String messageKey) {
         // Validate that same essential variables are present
-        if (!isValidEvent(event)){
-            log.error("Kafka message error - Either priority or production module or Topic are missing / invalid from the event. Message is discarded! Data: {}",event);
+        if (!isValidEvent(event)) {
+            log.error("Kafka message error - Either priority or production module or Topic are missing / invalid from the event. Message is discarded! Data: {}", event);
             return;
         }
 
-        // Handle cases where Topic is the MODAPTO's MQTT Topics
-        if (topic.equals(MQTT_KAFKA_TOPIC)){
-            event.setTopic(messageKey);
-        }
-
-        // Generate Description if not available
-        if (event.getDescription() == null && event.getEventType() != null)
-            event.setDescription("New system event: " + event.getEventType());
+        // Refactor and complete incoming event
+        refactorAndCompleteEvent(event, topic, messageKey);
 
         log.info("Event Received: {}", event);
         // Store incoming Event
-        try{
+        try {
             // Store incoming event
             String eventId = eventService.storeIncomingEvent(event);
-            if (eventId == null){
+            if (eventId == null) {
                 log.error("Event could not be stored in DB. Message is discarded!");
                 return;
             }
@@ -108,27 +104,47 @@ public class KafkaMessageHandler {
             // Create and store the notification
             NotificationDto eventNotification = generateNotificationFromEvent(event);
             log.info("Notification created: {}", eventNotification);
-            
+
             // Store notifications per each User - Async
             createNotificationForUsers(eventNotification, userIds);
 
             // Remove userId from notification and convert Object to JSON message
             eventNotification.setUserId(null);
             String notificationMessage = objectMapper.writeValueAsString(eventNotification);
-            if (userRolesPerEventType.isEmpty() || userIds.isEmpty() || userRolesPerEventType.contains(GLOBAL_EVENT_MAPPINGS))
+            if (userRolesPerEventType.isEmpty() || userRolesPerEventType.contains(GLOBAL_EVENT_MAPPINGS))
                 // Send notification globally to pilot users
                 webSocketService.notifyUsersAndRolesViaWebSocket(notificationMessage, pilot.toUpperCase());
-            else 
+            else
                 // Send notification through WebSockets to all user roles in the plant
                 userRolesPerEventType.forEach(role -> webSocketService.notifyUsersAndRolesViaWebSocket(notificationMessage, role));
-            
+
             // Send notification through WebSockets for Super-Admins
             webSocketService.notifyUsersAndRolesViaWebSocket(notificationMessage, SUPER_ADMIN_ROLE);
-        } catch (JsonProcessingException e){
+        } catch (JsonProcessingException e) {
             log.error("Unable to convert Notification to string message - {}", e.getMessage());
-        } catch (ModelMappingException  e){
+        } catch (ModelMappingException e) {
             log.error("ModelMapping exception occurred when trying to store incoming event / retrieve current event mapping - {}", e.getMessage());
         }
+    }
+
+    /*
+     * Helper method to refactor Event Fields in not in proper format and add any potential missing fields
+     */
+    private void refactorAndCompleteEvent(EventDto incomingEvent, String kafkaTopic, String messageKey) {
+        // Format Priority Status - Uniform Case
+        incomingEvent.setPriority(MessagePriority.valueOf(incomingEvent.getPriority().toUpperCase()).toString());
+
+        // Handle cases where Topic is the MODAPTO's MQTT Topics
+        if (kafkaTopic.equals(MQTT_KAFKA_TOPIC))
+            incomingEvent.setTopic(messageKey);
+
+        // Generate Description if not available
+        if (incomingEvent.getDescription() == null && incomingEvent.getEventType() != null)
+            incomingEvent.setDescription("New system event: " + incomingEvent.getEventType());
+
+        // Generate Timestamp if missing
+        if (incomingEvent.getTimestamp() == null)
+            incomingEvent.setTimestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
     }
 
 
@@ -136,7 +152,12 @@ public class KafkaMessageHandler {
      * Helper method to locate the UserIDs that will receive the Notification
      */
     private List<String> determineRecipientsOfNotification(EventDto event, List<String> userRolesPerEventType) {
-        // Handle empty mappings case
+        List<String> relatedUserIds = new ArrayList<>();
+
+        // Include Super-Admin UserID
+        relatedUserIds.add(SUPER_ADMIN_ROLE);
+
+        // Handle empty mappings case - Creating mapping and retrieve all pilot users
         if (userRolesPerEventType.isEmpty()) {
             log.info("No mappings exist for topic '{}'. All users in {} plant will be informed!",
                     event.getTopic(), pilot.toUpperCase());
@@ -144,16 +165,14 @@ public class KafkaMessageHandler {
             // Request creation of mapping - Async
             createDefaultNotificationMapping(event.getTopic());
 
-            return notificationService.retrieveUserIdsPerPilot(pilot.toUpperCase());
+            relatedUserIds.addAll(notificationService.retrieveUserIdsPerPilot(pilot.toUpperCase()));
+        } else if (userRolesPerEventType.contains(GLOBAL_EVENT_MAPPINGS)) { // Handle "ALL" role mapping - Send notification globally to pilot users
+            relatedUserIds.addAll(notificationService.retrieveUserIdsPerPilot(pilot.toUpperCase()));
+        } else { // Handle specific roles
+            relatedUserIds.addAll(notificationService.retrieveUserIdsPerRoles(userRolesPerEventType));
         }
 
-        // Handle "ALL" role mapping
-        if (userRolesPerEventType.contains("ALL")) {
-            return notificationService.retrieveUserIdsPerPilot(pilot.toUpperCase());
-        }
-
-        // Handle specific roles
-        return notificationService.retrieveUserIdsPerRoles(userRolesPerEventType);
+        return relatedUserIds;
     }
 
     /*
@@ -189,8 +208,8 @@ public class KafkaMessageHandler {
     /*
      * Helper method to generate a Notification from Event
      */
-    private NotificationDto generateNotificationFromEvent(EventDto event){
-        return  NotificationDto.builder()
+    private NotificationDto generateNotificationFromEvent(EventDto event) {
+        return NotificationDto.builder()
                 .notificationType(NotificationType.EVENT.toString())
                 .notificationStatus(NotificationStatus.UNREAD.toString())
                 .messageStatus(event.getEventType())
@@ -199,7 +218,7 @@ public class KafkaMessageHandler {
                 .smartService(event.getSmartService())
                 .relatedEvent(event.getId())
                 .relatedAssignment(null)
-                .timestamp(LocalDateTime.now().withNano(0))
+                .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                 .priority(event.getPriority())
                 .description(event.getDescription())
                 .build();
@@ -214,9 +233,9 @@ public class KafkaMessageHandler {
     /**
      * Dynamic creation of new topics in Kafka with Kafka Admin
      *
-     * @param topicName : String value of newly created topic
+     * @param topicName  : String value of newly created topic
      * @param partitions : Number of partitions for the specified topic
-     * @param replicas : Number of replicas for the specified topic
+     * @param replicas   : Number of replicas for the specified topic
      */
     public void createTopic(String topicName, int partitions, int replicas) {
         NewTopic topic = TopicBuilder.name(topicName)

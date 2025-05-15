@@ -1,6 +1,7 @@
 package gr.atc.modapto.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,7 +67,7 @@ class EventServiceTests {
                 .smartService("Test Smart Service")
                 .productionModule("Test Production Module")
                 .eventType(null)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC))
                 .description(null)
                 .priority(MessagePriority.HIGH.toString())
                 .build();
@@ -77,7 +78,7 @@ class EventServiceTests {
         testEvent.setSmartService("Test Smart Service");
         testEvent.setProductionModule("Test Production Module");
         testEvent.setEventType(null);
-        testEvent.setTimestamp(LocalDateTime.now());
+        testEvent.setTimestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC));
         testEvent.setDescription(null);
 
 

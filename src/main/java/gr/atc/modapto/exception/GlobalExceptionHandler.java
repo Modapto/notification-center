@@ -5,6 +5,7 @@ import java.util.Arrays;
 import gr.atc.modapto.controller.BaseAppResponse;
 import static gr.atc.modapto.exception.CustomExceptions.*;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.ValidationException;
 import jakarta.validation.constraints.NotNull;
 
 import org.springframework.http.HttpStatus;
@@ -15,7 +16,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -91,10 +91,19 @@ public class GlobalExceptionHandler {
      * Handles validation for Method Parameters
      */
     @ExceptionHandler(HandlerMethodValidationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<BaseAppResponse<String>> validationExceptionHandler(
             @NonNull HandlerMethodValidationException ex) {
         return new ResponseEntity<>(BaseAppResponse.error(VALIDATION_ERROR, "Invalid input field"),
+                HttpStatus.BAD_REQUEST);
+    }
+
+    /*
+     * Handles general validation exception
+     */
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<BaseAppResponse<String>> handleGeneralValidationException(
+            @NonNull ValidationException ex) {
+        return new ResponseEntity<>(BaseAppResponse.error(VALIDATION_ERROR, ex.getMessage()),
                 HttpStatus.BAD_REQUEST);
     }
 

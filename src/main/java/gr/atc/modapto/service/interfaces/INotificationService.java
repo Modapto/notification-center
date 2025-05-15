@@ -28,7 +28,7 @@ public interface INotificationService {
 
     List<String> retrieveUserIdsPerRoles(List<String> roles);
 
-    void updateNotificationStatus(String notificationId);
+    void updateNotificationStatusToRead(String notificationId);
 
     void deleteNotificationById(String notificationId);
 

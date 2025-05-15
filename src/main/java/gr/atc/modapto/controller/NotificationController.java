@@ -248,8 +248,8 @@ public class NotificationController {
             @ApiResponse(responseCode = "404", description = "Notification with id [ID] not found in DB")
     })
     @PutMapping("/{notificationId}/notificationStatus")
-    public ResponseEntity<BaseAppResponse<String>> updateNotificationStatus(@PathVariable String notificationId) {
-        notificationService.updateNotificationStatus(notificationId);
+    public ResponseEntity<BaseAppResponse<String>> updateNotificationStatusToRead(@PathVariable String notificationId) {
+        notificationService.updateNotificationStatusToRead(notificationId);
         return new ResponseEntity<>(BaseAppResponse.success(null, "Notification status updated successfully"), HttpStatus.OK);
     }
 

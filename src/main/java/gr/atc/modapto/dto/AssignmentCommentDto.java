@@ -13,6 +13,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @AllArgsConstructor
@@ -23,9 +25,9 @@ import java.time.LocalDateTime;
 public class AssignmentCommentDto {
 
     @Builder.Default
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
     @JsonProperty("timestamp")
-    private LocalDateTime datetime = LocalDateTime.now();
+    private OffsetDateTime datetime = LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC);
 
     @NotEmpty
     @JsonProperty("comment")

@@ -1,14 +1,16 @@
 package gr.atc.modapto.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import gr.atc.modapto.exception.CustomExceptions;
+import static gr.atc.modapto.exception.CustomExceptions.*;
 import gr.atc.modapto.model.AssignmentComment;
 import gr.atc.modapto.service.interfaces.INotificationService;
+import jakarta.validation.ValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,7 +39,6 @@ import gr.atc.modapto.dto.AssignmentDto;
 import gr.atc.modapto.enums.AssignmentStatus;
 import gr.atc.modapto.enums.AssignmentType;
 import gr.atc.modapto.enums.MessagePriority;
-import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
 import gr.atc.modapto.model.Assignment;
 import gr.atc.modapto.repository.AssignmentRepository;
 import org.springframework.test.context.ActiveProfiles;
@@ -71,7 +72,7 @@ class AssignmentServiceTests {
 
         AssignmentCommentDto assignmentCommentDto = AssignmentCommentDto.builder().comment("System Comment").build();
 
-        AssignmentCommentDto oldAssignmentCommentDto = AssignmentCommentDto.builder().comment("Old System Comment").datetime(LocalDateTime.now().minusDays(1)).build();
+        AssignmentCommentDto oldAssignmentCommentDto = AssignmentCommentDto.builder().comment("Old System Comment").datetime(LocalDateTime.now().minusDays(1).withNano(0).atOffset(ZoneOffset.UTC)).build();
 
         AssignmentComment assignmentComment = AssignmentComment.convertToAssignmentComment(assignmentCommentDto);
         AssignmentComment oldAssignmentComment = AssignmentComment.convertToAssignmentComment(oldAssignmentCommentDto);
@@ -103,7 +104,7 @@ class AssignmentServiceTests {
         assignment.setSourceUserId("testSourceUser");
         assignment.setStatus(AssignmentStatus.OPEN.toString());
         assignmentDto.setPriority(MessagePriority.HIGH.toString());
-        assignment.setTimestamp(LocalDateTime.now());
+        assignment.setTimestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC));
     }
 
     @DisplayName("Retrieve All Assignments: Success")
@@ -209,10 +210,11 @@ class AssignmentServiceTests {
     @Test
     void givenExistingAssignment_whenUpdateAssignment_thenSaveUpdatedAssignmentAndTriggerNotification() {
         // Given
-        when(assignmentRepository.findById(eq("1"))).thenReturn(Optional.of(assignment));
+        when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
         when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
         when(notificationService.createNotificationAndNotifyUser(any(AssignmentDto.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
+        when(modelMapper.map(any(Assignment.class), eq(AssignmentDto.class))).thenReturn(assignmentDto);
 
         // When
         assignmentService.updateAssignment(assignmentDto, "testSourceUser");
@@ -229,7 +231,7 @@ class AssignmentServiceTests {
         when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
 
         // When - Then
-        CustomExceptions.UnauthorizedAssignmentUpdateException exception = assertThrows(CustomExceptions.UnauthorizedAssignmentUpdateException.class, () -> {
+        UnauthorizedAssignmentUpdateException exception = assertThrows(UnauthorizedAssignmentUpdateException.class, () -> {
             assignmentService.updateAssignment(assignmentDto, "wrongUser");
         });
 
@@ -241,12 +243,13 @@ class AssignmentServiceTests {
     @Test
     void givenAssignmentWithStatusAndPriority_whenUpdateAssignment_thenSystemCommentsAdded() {
         // Given
-        assignmentDto.setStatus("Completed");
+        assignmentDto.setStatus("Done");
         assignmentDto.setPriority("High");
-        when(assignmentRepository.findById(eq("1"))).thenReturn(Optional.of(assignment));
+        when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
         when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
         when(notificationService.createNotificationAndNotifyUser(any(AssignmentDto.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
+        when(modelMapper.map(any(Assignment.class), eq(AssignmentDto.class))).thenReturn(assignmentDto);
 
         // When
         assignmentService.updateAssignment(assignmentDto, "testSourceUser");
@@ -254,7 +257,7 @@ class AssignmentServiceTests {
         // Then
         assertNotNull(assignmentDto.getComments());
         assertTrue(assignmentDto.getComments().stream()
-                .anyMatch(c -> c.getComment().contains("Task status updated to 'Completed'")));
+                .anyMatch(c -> c.getComment().contains("Task status updated to 'Done'")));
         assertTrue(assignmentDto.getComments().stream()
                 .anyMatch(c -> c.getComment().contains("Task priority updated to 'High'")));
 
@@ -262,14 +265,27 @@ class AssignmentServiceTests {
         verify(notificationService, times(1)).createNotificationAndNotifyUser(eq(assignmentDto));
     }
 
+    @DisplayName("Update Assignment: Invalid Assignment Status")
     @Test
+    void givenInvalidAssignmentStatus_whenUpdateAssignment_thenThrowValidationException() {
+        // Change the assignmentDto Status
+        assignmentDto.setStatus("Invalid");
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            assignmentService.updateAssignment(assignmentDto, "testSourceUser");
+        });
+
+        // Then
+        assertEquals("Unknown assignment status: Invalid", exception.getMessage());
+    }
+
     @DisplayName("Update Assignment: Not Found")
+    @Test
     void givenNonExistentAssignment_whenUpdateAssignment_thenThrowDataNotFoundException() {
         // When
         when(assignmentRepository.findById(anyString())).thenReturn(Optional.empty());
 
         DataNotFoundException exception = assertThrows(DataNotFoundException.class, () -> {
-            assignmentService.updateAssignment(assignmentDto, "mockUserId");
+            assignmentService.updateAssignment(assignmentDto, "testSourceUser");
         });
 
         // Then
@@ -300,7 +316,7 @@ class AssignmentServiceTests {
         // When
         when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
 
-        CustomExceptions.UnauthorizedAssignmentUpdateException exception = assertThrows(CustomExceptions.UnauthorizedAssignmentUpdateException.class, () -> {
+        UnauthorizedAssignmentUpdateException exception = assertThrows(UnauthorizedAssignmentUpdateException.class, () -> {
             assignmentService.updateAssignmentComments("invalid", commentDto, "wrongUser");
         });
 
