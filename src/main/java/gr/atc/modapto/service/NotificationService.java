@@ -405,7 +405,6 @@ public class NotificationService implements INotificationService {
             notification.setUser(userFullName);
 
             String notificationId = storeNotification(notification);
-            log.info("Notification for user {} stored in DB with ID: {}", userId, notificationId);
             if (notificationId == null){
                 log.error("Notification could not be stored in DB");
                 return;
@@ -420,6 +419,9 @@ public class NotificationService implements INotificationService {
         }
     }
 
+    /*
+     * Helper method to Clone Notification Dto
+     */
     private NotificationDto cloneNotification(NotificationDto original) {
         return NotificationDto.builder()
                 .notificationType(original.getNotificationType())
