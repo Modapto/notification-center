@@ -388,10 +388,10 @@ public class NotificationService implements INotificationService {
                         .build();
 
                 // Store Notification for Associated User
-                storeNotificationForEachAssociatedUserAndNotifyUser(assignment.getTargetUserId(), assignment.getTargetUser(), assignmentNotification);
+                storeNotificationForEachAssociatedUserAndNotifyUser(assignment.getTargetUserId(), assignment.getTargetUser(), cloneNotification(assignmentNotification));
 
                 // Store Notification for Super Admin
-                storeNotificationForEachAssociatedUserAndNotifyUser(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE, assignmentNotification);
+                storeNotificationForEachAssociatedUserAndNotifyUser(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE, cloneNotification(assignmentNotification));
         });
     }
 
@@ -418,5 +418,18 @@ public class NotificationService implements INotificationService {
         } catch (JsonProcessingException e){
             log.error("Error processing Notification Dto to JSON - Error: {}", e.getMessage());
         }
+    }
+
+    private NotificationDto cloneNotification(NotificationDto original) {
+        return NotificationDto.builder()
+                .notificationType(original.getNotificationType())
+                .notificationStatus(original.getNotificationStatus())
+                .messageStatus(original.getMessageStatus())
+                .productionModule(original.getProductionModule())
+                .relatedAssignment(original.getRelatedAssignment())
+                .timestamp(original.getTimestamp())
+                .priority(original.getPriority())
+                .description(original.getDescription())
+                .build();
     }
 }
