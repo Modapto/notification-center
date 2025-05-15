@@ -168,8 +168,14 @@ public class AssignmentService implements IAssignmentService {
             assignmentRepository.save(newAssignment);
 
             // If the Target User has updated the assignment then send the notification to the Source User (mark him as Target)
-            if (newAssignment.getTargetUserId().equals(userId))
+            if (newAssignment.getTargetUserId().equals(userId)){
                 newAssignment.setTargetUserId(newAssignment.getSourceUserId());
+
+                if (newAssignment.getSourceUser() != null)
+                    newAssignment.setTargetUser(newAssignment.getSourceUser());
+                else
+                    newAssignment.setTargetUser(newAssignment.getSourceUserId());
+            }
 
             // Create Notification and Notify relevant user asynchronously
             generateNotificationFromAssignment(modelMapper.map(newAssignment, AssignmentDto.class));
@@ -246,7 +252,17 @@ public class AssignmentService implements IAssignmentService {
 
             updatedAssignment.getComments().add(AssignmentComment.convertToAssignmentComment(assignmentComment));
             updatedAssignment.setTimestampUpdated(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
+
             assignmentRepository.save(updatedAssignment);
+
+            // If the Target User has updated the assignment then send the notification to the Source User (mark him as Target)
+            if (updatedAssignment.getTargetUserId().equals(userId)){
+                updatedAssignment.setTargetUserId(updatedAssignment.getSourceUserId());
+                updatedAssignment.setTargetUser(updatedAssignment.getSourceUser());
+            }
+
+            // Create Notification and Notify relevant user asynchronously
+            generateNotificationFromAssignment(modelMapper.map(updatedAssignment, AssignmentDto.class));
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
         }
