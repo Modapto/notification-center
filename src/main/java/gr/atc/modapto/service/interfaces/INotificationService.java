@@ -30,6 +30,8 @@ public interface INotificationService {
 
     void updateNotificationStatusToRead(String notificationId);
 
+    String retrieveUserFullName(String userId);
+
     void deleteNotificationById(String notificationId);
 
     CompletableFuture<Void> createNotificationAndNotifyUser(AssignmentDto assignmentDto);

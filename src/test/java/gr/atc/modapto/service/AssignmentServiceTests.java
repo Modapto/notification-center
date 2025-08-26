@@ -51,6 +51,9 @@ class AssignmentServiceTests {
     private INotificationService notificationService;
 
     @Mock
+    private ModaptoModuleService modaptoModuleService;
+
+    @Mock
     private AssignmentRepository assignmentRepository;
 
     @Mock
@@ -88,7 +91,8 @@ class AssignmentServiceTests {
         assignmentDto = new AssignmentDto();
         assignmentDto.setId("1");
         assignmentDto.setDescription("Test Assignment");
-        assignmentDto.setProductionModule("TestModule");
+        assignmentDto.setModule("TestModule");
+        assignmentDto.setModuleName("Test Module Name");
         assignmentDto.setTargetUserId("testTargetUser");
         assignmentDto.setSourceUserId("testSourceUser");
         assignmentDto.setComments(commentsDto);
@@ -98,7 +102,7 @@ class AssignmentServiceTests {
         assignment = new Assignment();
         assignment.setId("1");
         assignment.setDescription("Test Assignment");
-        assignment.setProductionModule("TestModule");
+        assignment.setModule("TestModule");
         assignment.setComments(comments);
         assignment.setTargetUserId("testTargetUser");
         assignment.setSourceUserId("testSourceUser");
@@ -206,6 +210,47 @@ class AssignmentServiceTests {
         verify(notificationService, times(1)).createNotificationAndNotifyUser(eq(assignmentDto));
     }
 
+    @DisplayName("Store Assignment: Success with Module Name Resolution")
+    @Test
+    void givenAssignmentDtoWithoutProductionModuleName_whenStoreAssignment_thenResolveModuleName() {
+        // Given
+        assignmentDto.setModuleName(null); // No module name provided
+        when(modaptoModuleService.retrieveModaptoModuleName("TestModule")).thenReturn("Test Module Name");
+        when(modelMapper.map(any(AssignmentDto.class), eq(Assignment.class))).thenReturn(assignment);
+        when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
+        when(notificationService.createNotificationAndNotifyUser(any(AssignmentDto.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        // When
+        String result = assignmentService.storeAssignment(assignmentDto);
+
+        // Then
+        assertEquals("1", result);
+        verify(modaptoModuleService, times(1)).retrieveModaptoModuleName("TestModule");
+        verify(assignmentRepository, times(1)).save(any(Assignment.class));
+        verify(notificationService, times(1)).createNotificationAndNotifyUser(eq(assignmentDto));
+    }
+
+    @DisplayName("Store Assignment: Success with Existing Module Name")
+    @Test
+    void givenAssignmentDtoWithProductionModuleName_whenStoreAssignment_thenSkipModuleNameResolution() {
+        // Given
+        assignmentDto.setModuleName("Existing Module Name"); // Module name εxists
+        when(modelMapper.map(any(AssignmentDto.class), eq(Assignment.class))).thenReturn(assignment);
+        when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
+        when(notificationService.createNotificationAndNotifyUser(any(AssignmentDto.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        // When
+        String result = assignmentService.storeAssignment(assignmentDto);
+
+        // Then
+        assertEquals("1", result);
+        verify(modaptoModuleService, times(0)).retrieveModaptoModuleName(anyString()); // Should not be called
+        verify(assignmentRepository, times(1)).save(any(Assignment.class));
+        verify(notificationService, times(1)).createNotificationAndNotifyUser(eq(assignmentDto));
+    }
+
     @DisplayName("Update Assignment: Success")
     @Test
     void givenExistingAssignment_whenUpdateAssignment_thenSaveUpdatedAssignmentAndTriggerNotification() {
@@ -298,9 +343,12 @@ class AssignmentServiceTests {
         // Given
         AssignmentCommentDto commentDto = AssignmentCommentDto.builder().comment("Test comment").build();
 
-        // When
         when(assignmentRepository.findById(anyString())).thenReturn(Optional.of(assignment));
+        when(notificationService.createNotificationAndNotifyUser(any(AssignmentDto.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+        when(modelMapper.map(any(Assignment.class), eq(AssignmentDto.class))).thenReturn(assignmentDto);
 
+        // When
         assignmentService.updateAssignmentComments("1", commentDto, "testSourceUser");
 
         // Then

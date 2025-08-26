@@ -5,9 +5,11 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import gr.atc.modapto.enums.MessagePriority;
 import gr.atc.modapto.events.NewNotificationEvent;
 import gr.atc.modapto.events.NewNotificationMappingsEvent;
+import gr.atc.modapto.service.ModaptoModuleService;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,7 +42,6 @@ public class KafkaMessageHandler {
     private static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
 
     @Value("${kafka.topics}")
-    @SuppressWarnings("unused")
     private List<String> kafkaTopics;
 
     @Value("${use-case.pilot}")
@@ -48,11 +49,19 @@ public class KafkaMessageHandler {
 
     private static final String MQTT_KAFKA_TOPIC = "modapto-mqtt-topics";
 
+    private static final String DT_CREATION_TOPIC = "modapto-module-creation";
+
+    private static final String DT_DELETION_TOPIC = "modapto-module-deletion";
+
+    private static final String DT_NAME_FIELD = "name";
+
     private final KafkaAdmin kafkaAdmin;
 
     private final IEventService eventService;
 
     private final INotificationService notificationService;
+
+    private final ModaptoModuleService modaptoModuleService;
 
     private final WebSocketService webSocketService;
 
@@ -60,7 +69,7 @@ public class KafkaMessageHandler {
 
     private final ApplicationEventPublisher eventPublisher;
 
-    public KafkaMessageHandler(KafkaAdmin kafkaAdmin, IEventService eventService, INotificationService notificationService, WebSocketService webSocketService, ApplicationEventPublisher eventPublisher, ObjectMapper objectMapper) {
+    public KafkaMessageHandler(KafkaAdmin kafkaAdmin, IEventService eventService, INotificationService notificationService, WebSocketService webSocketService, ApplicationEventPublisher eventPublisher, ObjectMapper objectMapper, ModaptoModuleService modaptoModuleService) {
         kafkaAdmin.setAutoCreate(true);
         this.kafkaAdmin = kafkaAdmin;
         this.eventService = eventService;
@@ -68,6 +77,7 @@ public class KafkaMessageHandler {
         this.webSocketService = webSocketService;
         this.eventPublisher = eventPublisher;
         this.objectMapper = objectMapper;
+        this.modaptoModuleService = modaptoModuleService;
     }
 
     /**
@@ -86,7 +96,17 @@ public class KafkaMessageHandler {
         // Refactor and complete incoming event
         refactorAndCompleteEvent(event, topic, messageKey);
 
-        log.info("Event Received: {}", event);
+        log.debug("Event Received: {}", event);
+
+        // Locate Module's name
+        String moduleName = locateModaptoModuleName(event, topic);
+        if (moduleName == null) {
+            log.error("Unable to locate Modapto Module with ID: {}", event.getModule());
+            return;
+        }
+        event.setModuleName(moduleName);
+        log.debug("Located name for MODAPTO Module with ID: {} is '{}'", event.getModule(), moduleName);
+
         // Store incoming Event
         try {
             // Store incoming event
@@ -103,8 +123,8 @@ public class KafkaMessageHandler {
 
             // Create and store the notification
             NotificationDto eventNotification = generateNotificationFromEvent(event);
-            log.info("Notification created: {}", eventNotification);
-
+            log.debug("Notification created: {}", eventNotification);
+            
             // Store notifications per each User - Async
             createNotificationForUsers(eventNotification, userIds);
 
@@ -147,6 +167,27 @@ public class KafkaMessageHandler {
             incomingEvent.setTimestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
     }
 
+    /*
+     * Helper method to locate the Modapto Module name and inject it into notification
+     */
+    private String locateModaptoModuleName(EventDto event, String topic) {
+        // If Module just created parse the results and get the 'name' field
+        if (topic.equalsIgnoreCase(DT_CREATION_TOPIC)) {
+            JsonNode results = event.getResults();
+            if (results != null && results.has(DT_NAME_FIELD) && !results.get(DT_NAME_FIELD).isNull()) {
+                return results.get(DT_NAME_FIELD).asText();
+            } else {
+                // There is no name field
+                return null;
+            }
+            // Otherwise locate it from PKB
+        } else if (topic.equalsIgnoreCase(DT_DELETION_TOPIC)){
+            return event.getModule();
+        } else {
+            return modaptoModuleService.retrieveModaptoModuleName(event.getModule());
+        }
+    }
+
 
     /*
      * Helper method to locate the UserIDs that will receive the Notification
@@ -159,7 +200,7 @@ public class KafkaMessageHandler {
 
         // Handle empty mappings case - Creating mapping and retrieve all pilot users
         if (userRolesPerEventType.isEmpty()) {
-            log.info("No mappings exist for topic '{}'. All users in {} plant will be informed!",
+            log.debug("No mappings exist for topic '{}'. All users in {} plant will be informed!",
                     event.getTopic(), pilot.toUpperCase());
 
             // Request creation of mapping - Async
@@ -182,7 +223,7 @@ public class KafkaMessageHandler {
         Thread.startVirtualThread(() -> {
             try {
                 NewNotificationMappingsEvent appEvent = new NewNotificationMappingsEvent(this, topic);
-                log.info("Publishing event to create a new Event Mapping for topic: {}", topic);
+                log.debug("Publishing event to create a new Event Mapping for topic: {}", topic);
                 eventPublisher.publishEvent(appEvent);
             } catch (Exception e) {
                 log.error("Error while creating a new event mapping: {}", e.getMessage(), e);
@@ -197,7 +238,7 @@ public class KafkaMessageHandler {
         Thread.startVirtualThread(() -> {
             try {
                 NewNotificationEvent appEvent = new NewNotificationEvent(this, notification, userIds);
-                log.info("Publishing event to create Notifications for all Users");
+                log.debug("Publishing event to create Notifications for all Users");
                 eventPublisher.publishEvent(appEvent);
             } catch (Exception e) {
                 log.error("Error while publishing notification event: {}", e.getMessage(), e);
@@ -214,7 +255,8 @@ public class KafkaMessageHandler {
                 .notificationStatus(NotificationStatus.UNREAD.toString())
                 .messageStatus(event.getEventType())
                 .sourceComponent(event.getSourceComponent())
-                .productionModule(event.getProductionModule())
+                .module(event.getModule())
+                .moduleName(event.getModuleName())
                 .smartService(event.getSmartService())
                 .relatedEvent(event.getId())
                 .relatedAssignment(null)
@@ -226,7 +268,7 @@ public class KafkaMessageHandler {
 
     private boolean isValidEvent(EventDto event) {
         return (event.getPriority() != null && EnumUtils.isValidEnumIgnoreCase(MessagePriority.class, event.getPriority())) &&
-                event.getProductionModule() != null &&
+                event.getModule() != null &&
                 event.getTopic() != null;
     }
 
@@ -244,6 +286,6 @@ public class KafkaMessageHandler {
                 .build();
 
         kafkaAdmin.createOrModifyTopics(topic);
-        log.info("Topic created: {}", topicName);
+        log.debug("Topic created: {}", topicName);
     }
 }

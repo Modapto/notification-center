@@ -51,8 +51,11 @@ public class NotificationDto{
     @JsonProperty("description")
     private String description;
 
-    @JsonProperty("productionModule")
-    private String productionModule;
+    @JsonProperty("module")
+    private String module;
+
+    @JsonProperty("moduleName")
+    private String moduleName;
 
     @JsonProperty("smartService")
     private String smartService;

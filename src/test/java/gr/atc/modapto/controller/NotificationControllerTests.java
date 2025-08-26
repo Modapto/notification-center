@@ -5,6 +5,8 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
+
+import gr.atc.modapto.repository.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,10 +45,6 @@ import gr.atc.modapto.enums.MessagePriority;
 import gr.atc.modapto.enums.NotificationStatus;
 import gr.atc.modapto.enums.NotificationType;
 import gr.atc.modapto.exception.CustomExceptions;
-import gr.atc.modapto.repository.AssignmentRepository;
-import gr.atc.modapto.repository.EventMappingsRepository;
-import gr.atc.modapto.repository.EventRepository;
-import gr.atc.modapto.repository.NotificationRepository;
 import gr.atc.modapto.service.interfaces.INotificationService;
 
 @WebMvcTest(NotificationController.class)
@@ -74,6 +72,9 @@ class NotificationControllerTests {
     @MockitoBean
     private EventMappingsRepository eventMappingsRepository;
 
+    @MockitoBean
+    private ModaptoModuleRepository modaptoModuleRepository;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -98,7 +99,8 @@ class NotificationControllerTests {
                 .notificationType(NotificationType.EVENT.toString())
                 .notificationStatus(NotificationStatus.UNREAD.toString())
                 .sourceComponent("Test Component")
-                .productionModule("Test Production Module")
+                .module("Test Production Module")
+                .moduleName("Test Module Name")
                 .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                 .priority(MessagePriority.MID.toString())
                 .description("Test")
@@ -299,7 +301,7 @@ class NotificationControllerTests {
                 // Then
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.data.productionModule", is("Test Production Module")));
+                .andExpect(jsonPath("$.data.module", is("Test Production Module")));
     }
 
     @DisplayName("Get Notification by ID: Not Found Exception")
@@ -366,7 +368,7 @@ class NotificationControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", is("Unread notifications retrieved successfully!")))
-                .andExpect(jsonPath("$.data[0].productionModule", is("Test Production Module")));
+                .andExpect(jsonPath("$.data[0].module", is("Test Production Module")));
     }
 
     @DisplayName("Get Notifications by User ID: Exception Handling")

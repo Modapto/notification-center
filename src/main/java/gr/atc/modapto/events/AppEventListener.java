@@ -25,11 +25,13 @@ public class AppEventListener {
 
     private final INotificationService notificationService;
 
+    private static final String SUPER_ADMIN_ROLE = "SUPER_ADMIN";
+
     @EventListener
     @Async(value = "asyncPoolTaskExecutor")
     public void handleNewUserMappingsEvent(NewNotificationMappingsEvent appEvent) {
         String topic = appEvent.getTopic();
-        log.info("Creating new Event-Mapping for Topic: {}", topic);
+        log.debug("Creating new Event-Mapping for Topic: {}", topic);
         try {
             EventMappingsDto mapping = EventMappingsDto.builder()
                     .userRoles(List.of("ALL"))
@@ -49,10 +51,17 @@ public class AppEventListener {
         try {
             for (String userId : appEvent.getUserIds()) {
                 eventNotification.setUserId(userId);
+                if (userId.equals(SUPER_ADMIN_ROLE)) {
+                    eventNotification.setUser(userId);
+                } else {
+                    String fullName = notificationService.retrieveUserFullName(userId);
+                    eventNotification.setUser(fullName != null ? fullName : userId);
+                }
 
                 String notificationId = notificationService.storeNotification(eventNotification);
+                log.debug("Notification stored successfully for User: {}", eventNotification.getUser());
                 if (notificationId == null) {
-                    log.error("Notification could not be stored in DB");
+                    log.error("Notification could not be stored in DB for User with ID: {}", userId);
                     return;
                 }
             }

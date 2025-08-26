@@ -1,5 +1,6 @@
 package gr.atc.modapto.kafka;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -13,6 +14,8 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.enums.MessagePriority;
+import gr.atc.modapto.service.ModaptoModuleService;
 import gr.atc.modapto.service.WebSocketService;
 import static org.awaitility.Awaitility.await;
 import java.util.concurrent.TimeUnit;
@@ -68,6 +72,9 @@ class KafkaMessageHandlerTests {
     private ObjectMapper objectMapper;
 
     @MockitoBean
+    private ModaptoModuleService modaptoModuleService;
+
+    @MockitoBean
     private KafkaAdmin kafkaAdmin;
 
     @InjectMocks
@@ -98,15 +105,16 @@ class KafkaMessageHandlerTests {
         // Arrange
         EventDto event = new EventDto();
         event.setPriority(MessagePriority.HIGH.toString());
-        event.setProductionModule("Test Module");
+        event.setModule("Test Module");
         event.setTopic("test-topic");
         event.setDescription("Test Description");
         event.setSourceComponent("Test Source Component");
         event.setSmartService("Test Smart Service");
 
+        when(modaptoModuleService.retrieveModaptoModuleName(anyString())).thenReturn("Test Module Name");
         when(eventService.storeIncomingEvent(any(EventDto.class))).thenReturn("event-123");
         when(eventService.retrieveUserRolesPerTopic(anyString())).thenReturn(List.of("ADMIN"));
-        when(notificationService.retrieveUserIdsPerRoles(anyList())).thenReturn(List.of("user1", "user2"));
+        when(notificationService.retrieveUserIdsPerRoles(anyList())).thenReturn(new ArrayList<>(List.of("user1", "user2")));
 
         // Act
         kafkaMessageHandler.consume(event, "test-topic", null);
@@ -124,20 +132,78 @@ class KafkaMessageHandlerTests {
     void givenNoRoles_whenConsumed_thenCreateMappingAndNotifyPilot() throws Exception {
         EventDto event = new EventDto();
         event.setPriority(MessagePriority.HIGH.toString());
-        event.setProductionModule("Test Module");
+        event.setModule("Test Module");
         event.setTopic("unmapped-topic");
         event.setDescription("Test Description");
         event.setSourceComponent("Test Source Component");
         event.setSmartService("Test Smart Service");
 
+        when(modaptoModuleService.retrieveModaptoModuleName(anyString())).thenReturn("Test Module Name");
         when(eventService.storeIncomingEvent(any())).thenReturn("event-456");
         when(eventService.retrieveUserRolesPerTopic(anyString())).thenReturn(List.of());
-        when(notificationService.retrieveUserIdsPerPilot(anyString())).thenReturn(List.of("test-user"));
+        when(notificationService.retrieveUserIdsPerPilot(anyString())).thenReturn(new ArrayList<>(List.of("test-user")));
 
         kafkaMessageHandler.consume(event, "unmapped-topic", null);
 
         await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
             verify(webSocketService).notifyUsersAndRolesViaWebSocket(any(), eq("TEST"));
+        });
+    }
+
+    @Test
+    @DisplayName("Kafka Consumer: Module Creation Event with Name Parsing")
+    void givenModuleCreationEvent_whenConsumed_thenParseNameFromResults() throws Exception {
+        // Given
+        EventDto event = new EventDto();
+        event.setPriority(MessagePriority.HIGH.toString());
+        event.setModule("MODULE-001");
+        event.setTopic("modapto-module-creation");
+        event.setDescription("Module Created");
+        event.setSourceComponent("PKB");
+        event.setSmartService("Module Manager");
+
+        // Mock JSON results
+        com.fasterxml.jackson.databind.JsonNode jsonNode = mock(com.fasterxml.jackson.databind.JsonNode.class);
+        when(jsonNode.has("name")).thenReturn(true);
+        when(jsonNode.get("name")).thenReturn(mock(com.fasterxml.jackson.databind.JsonNode.class));
+        when(jsonNode.get("name").isNull()).thenReturn(false);
+        when(jsonNode.get("name").asText()).thenReturn("Test Module Name");
+        event.setResults(jsonNode);
+
+        when(eventService.storeIncomingEvent(any(EventDto.class))).thenReturn("event-789");
+        when(eventService.retrieveUserRolesPerTopic(anyString())).thenReturn(List.of("OPERATOR"));
+        when(notificationService.retrieveUserIdsPerRoles(anyList())).thenReturn(new ArrayList<>(List.of("user1")));
+
+        // When
+        kafkaMessageHandler.consume(event, "modapto-module-creation", null);
+
+        // Then
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            verify(eventService).storeIncomingEvent(any(EventDto.class));
+            verify(modaptoModuleService, never()).retrieveModaptoModuleName(anyString());
+        });
+    }
+
+    @Test
+    @DisplayName("Kafka Consumer: Module Name Returns Null")
+    void givenUnresolvedModuleName_whenConsumed_thenSkipProcessing() throws Exception {
+        // Given
+        EventDto event = new EventDto();
+        event.setPriority(MessagePriority.HIGH.toString());
+        event.setModule("INVALID-MODULE");
+        event.setTopic("test-topic");
+        event.setDescription("Test Description");
+
+        when(modaptoModuleService.retrieveModaptoModuleName("INVALID-MODULE")).thenReturn(null);
+
+        // When
+        kafkaMessageHandler.consume(event, "test-topic", null);
+
+        // Then
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+            verify(modaptoModuleService).retrieveModaptoModuleName("INVALID-MODULE");
+            // No event is stored
+            verify(eventService, never()).storeIncomingEvent(any(EventDto.class));
         });
     }
 }

@@ -6,10 +6,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 
-import gr.atc.modapto.repository.AssignmentRepository;
-import gr.atc.modapto.repository.EventMappingsRepository;
-import gr.atc.modapto.repository.EventRepository;
-import gr.atc.modapto.repository.NotificationRepository;
+import gr.atc.modapto.repository.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -73,6 +70,9 @@ class EventControllerTests {
     @MockitoBean
     private EventMappingsRepository eventMappingsRepository;
 
+    @MockitoBean
+    private ModaptoModuleRepository modaptoModuleRepository;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -100,7 +100,7 @@ class EventControllerTests {
         testEvent = EventDto.builder()
                 .eventType("Test")
                 .smartService("Test Smart Service")
-                .productionModule("Test Production Module")
+                .module("Test Production Module")
                 .eventType(null)
                 .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                 .description(null)

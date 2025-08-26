@@ -23,7 +23,7 @@ public class WebSocketService {
     public void notifyUsersAndRolesViaWebSocket(String message, String topicName){
         try {
             String websocketTopic = "/topic/notifications/" + topicName;
-            log.info("Notifying websocket topic: {}", websocketTopic);
+            log.debug("Notifying websocket topic: {}", websocketTopic);
             messagingTemplate.convertAndSend(websocketTopic, message);
         } catch (MessagingException e) {
             log.error("Error in sending data via websockets - {}", e.getMessage());
@@ -40,7 +40,7 @@ public class WebSocketService {
     public void notifyUserViaWebSocket(String userId, String message) {
         try {
             String websocketTopic = "/user/" + userId + "/queue/notifications";
-            log.info("Notifying user: {} on websocket topic: {}", userId, websocketTopic);
+            log.debug("Notifying user: {} on websocket topic: {}", userId, websocketTopic);
             messagingTemplate.convertAndSendToUser(userId, "/queue/notifications", message);
         } catch (MessagingException e) {
             log.error("Error in sending data to user via websockets - {}", e.getMessage());

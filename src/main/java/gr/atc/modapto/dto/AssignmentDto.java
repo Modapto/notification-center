@@ -45,8 +45,11 @@ public class AssignmentDto {
     @JsonProperty("description")
     private String description;
 
-    @JsonProperty("productionModule")
-    private String productionModule;
+    @JsonProperty("module")
+    private String module;
+
+    @JsonProperty("moduleName")
+    private String moduleName;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
     @JsonProperty("timestamp")

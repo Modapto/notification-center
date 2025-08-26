@@ -66,8 +66,11 @@ public class Assignment extends Message {
         if (assignmentDto.getPriority() != null)
             assignment.setPriority(assignmentDto.getPriority());
 
-        if (assignmentDto.getProductionModule() != null)
-            assignment.setProductionModule(assignmentDto.getProductionModule());
+        if (assignmentDto.getModule() != null)
+            assignment.setModule(assignmentDto.getModule());
+
+        if (assignmentDto.getModuleName() != null)
+            assignment.setModuleName(assignmentDto.getModuleName());
 
         if (assignmentDto.getComments() != null)
             assignmentDto.getComments().stream()

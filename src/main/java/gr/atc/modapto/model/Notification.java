@@ -28,6 +28,9 @@ public class Notification extends Message {
     @Field(type = FieldType.Keyword, name = "userId")
     private String userId;
 
+    @Field(type = FieldType.Keyword, name = "user")
+    private String user;
+
     @Field(type = FieldType.Keyword, name = "notificationStatus")
     private String notificationStatus;
 

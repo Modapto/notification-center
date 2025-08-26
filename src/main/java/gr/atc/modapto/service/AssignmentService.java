@@ -37,6 +37,8 @@ public class AssignmentService implements IAssignmentService {
 
     private final INotificationService notificationService;
 
+    private final ModaptoModuleService modaptoModuleService;
+
     private final AssignmentRepository assignmentRepository;
 
     private final ModelMapper modelMapper;
@@ -252,7 +254,6 @@ public class AssignmentService implements IAssignmentService {
 
             updatedAssignment.getComments().add(AssignmentComment.convertToAssignmentComment(assignmentComment));
             updatedAssignment.setTimestampUpdated(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
-
             assignmentRepository.save(updatedAssignment);
 
             // If the Target User has updated the assignment then send the notification to the Source User (mark him as Target)
@@ -294,6 +295,9 @@ public class AssignmentService implements IAssignmentService {
             else
                 assignmentDto.setPriority(MessagePriority.LOW.toString());
 
+            if(assignmentDto.getModuleName() == null)
+                assignmentDto.setModuleName(modaptoModuleService.retrieveModaptoModuleName(assignmentDto.getModule()));
+
             String assignmentId = assignmentRepository.save(modelMapper.map(assignmentDto, Assignment.class)).getId();
             if (assignmentId != null) {
                 // Create Notification and Notify relevant user asynchronously
@@ -319,7 +323,7 @@ public class AssignmentService implements IAssignmentService {
 
         // Log the notification creation process
         CompletableFuture.allOf(notificationCreationAsync)
-                .thenRun(() -> log.info("Notification creation process completed"))
+                .thenRun(() -> log.debug("Notification creation process completed"))
                 .exceptionally(ex -> {
                     log.error("Notification creation process failed", ex);
                     return null;

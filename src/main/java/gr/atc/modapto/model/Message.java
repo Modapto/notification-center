@@ -19,11 +19,14 @@ public class Message {
     @Field(type = FieldType.Text, name = "description")
     private String description;
 
-    @Field(type = FieldType.Keyword, name = "productionModule")
-    private String productionModule;
+    @Field(type = FieldType.Keyword, name = "module")
+    private String module;
 
     @Field(type = FieldType.Date, name = "timestamp", format = DateFormat.strict_date_optional_time)
     private OffsetDateTime timestamp;
+
+    @Field(type = FieldType.Keyword, name = "moduleName")
+    private String moduleName;
 
     @Field(type = FieldType.Keyword, name ="priority")
     private String priority;

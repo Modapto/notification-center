@@ -77,7 +77,8 @@ class NotificationRepositoryTests extends SetupTestContainersEnvironment {
         notification.setUserId(userId);
         notification.setRelatedAssignment(relatedAssignment);
         notification.setRelatedEvent(relatedEvent);
-        notification.setProductionModule(module);
+        notification.setModule(module);
+        notification.setModuleName(module);
         notification.setNotificationStatus(status);
         notification.setNotificationType(type);
         notification.setTimestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));

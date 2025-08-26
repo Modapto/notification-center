@@ -31,7 +31,10 @@ public class EventDto {
 
     @NotEmpty(message = "Production Module cannot be empty")
     @JsonProperty("module")
-    private String productionModule;
+    private String module;
+
+    @JsonProperty("moduleName")
+    private String moduleName;
 
     @JsonDeserialize(using = UtcOffsetDateTimeDeserializer.class)
     @JsonProperty("timestamp")

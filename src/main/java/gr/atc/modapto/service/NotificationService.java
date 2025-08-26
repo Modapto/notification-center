@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -218,22 +219,6 @@ public class NotificationService implements INotificationService {
     }
 
     /**
-     * Update notification status (From Unread to Read) for a specific notification
-     *
-     * @param notificationId : ID of notification
-     */
-    @Override
-    public void updateNotificationStatusToRead(String notificationId) {
-        Optional<Notification> optionalNotification = notificationRepository.findById(notificationId);
-        if (optionalNotification.isEmpty())
-            throw new DataNotFoundException("Notification with id: " + notificationId + " not found in DB");
-
-        Notification notification = optionalNotification.get();
-        notification.setNotificationStatus(NotificationStatus.READ.toString());
-        notificationRepository.save(notification);
-    }
-
-    /**
      * Retrieve all user ids for a specific Pilot from User Manager Service
      *
      * @return List<String> : List with user Ids
@@ -254,11 +239,13 @@ public class NotificationService implements INotificationService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             HttpEntity<Void> entity = new HttpEntity<>(headers);
+            String requestUrl =  userManagerUrl.concat("/api/users/pilot/").concat(pilot);
+            log.debug("Making request to User Manager to retrieve Users for pilot - URL: {}", requestUrl);
             ResponseEntity<BaseAppResponse<List<UserDto>>> response = restTemplate.exchange(
-                    userManagerUrl.concat("/api/users/pilot/").concat(pilot),
+                    requestUrl,
                     HttpMethod.GET,
                     entity,
-                    new ParameterizedTypeReference<>() {
+                    new ParameterizedTypeReference<BaseAppResponse<List<UserDto>>>() {
                     }
             );
 
@@ -269,8 +256,8 @@ public class NotificationService implements INotificationService {
                     .map(dataList -> dataList.stream()
                             .map(UserDto::getUserId)
                             .filter(Objects::nonNull)
-                            .toList())
-                    .orElse(Collections.emptyList());
+                            .collect(Collectors.toList()))
+                    .orElse(new ArrayList<>());
         } catch (RestClientException e) {
             log.error("Unable to retrieve user IDs for pilot {} -  Error: {}", pilot, e.getMessage());
             return Collections.emptyList();
@@ -296,34 +283,105 @@ public class NotificationService implements INotificationService {
         headers.setBearerAuth(token);
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
-        // Retrieve User Ids per role
+        // Retrieve User Ids per role in parallel
         List<String> allUserIds = new ArrayList<>();
-        roles.forEach(role -> {
-            try {
-                ResponseEntity<BaseAppResponse<List<UserDto>>> response = restTemplate.exchange(
-                        userManagerUrl.concat("/api/users/role/").concat(role),
-                        HttpMethod.GET,
-                        entity,
-                        new ParameterizedTypeReference<>() {}
-                );
+        return roles.parallelStream()
+                .map(role -> {
+                    try {
+                        String requestUrl = userManagerUrl.concat("/api/users/role/").concat(role);
+                        log.debug("Making request to User Manager to retrieve Users for Role '{}' - URL: {}", role, requestUrl);
 
-                // Parse response and retrieve user Ids
-                List<String> userIds = Optional.of(response)
-                        .filter(resp -> resp.getStatusCode().is2xxSuccessful())
-                        .map(ResponseEntity::getBody)
-                        .map(BaseAppResponse::getData)
-                        .map(dataList -> dataList.stream()
-                                .map(UserDto::getUserId)
-                                .filter(Objects::nonNull)
-                                .toList())
-                        .orElse(Collections.emptyList());
+                        ResponseEntity<BaseAppResponse<List<UserDto>>> response = restTemplate.exchange(
+                                requestUrl,
+                                HttpMethod.GET,
+                                entity,
+                                new ParameterizedTypeReference<BaseAppResponse<List<UserDto>>>() {});
 
-                allUserIds.addAll(userIds);
-            } catch (RestClientException e) {
-                log.error("Unable to locate User IDs for Role: {} - Error: {}", role, e.getMessage());
-            }
-        });
-        return allUserIds;
+                        return Optional.of(response)
+                                .filter(resp -> resp.getStatusCode().is2xxSuccessful())
+                                .map(ResponseEntity::getBody)
+                                .map(BaseAppResponse::getData)
+                                .map(dataList -> dataList.stream()
+                                        .map(UserDto::getUserId)
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList()))
+                                .orElse(new ArrayList<>());
+                    } catch (RestClientException e) {
+                        log.error("Unable to locate User IDs for Role: {} - Error: {}", role, e.getMessage());
+                        return new ArrayList<String>();
+                    }
+                })
+                .flatMap(List::stream)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieve user full name by user ID
+     *
+     * @param userId: User ID
+     * @return String: User full name or null if not found
+     */
+    @Override
+    public String retrieveUserFullName(String userId) {
+        // Retrieve Component's JWT Token - Client credentials
+        String token = retrieveComponentJwtToken();
+        if (token == null) {
+            log.error(JWT_ERROR);
+            return null;
+        }
+
+        // Retrieve User full name
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(token);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<BaseAppResponse<UserDto>> response = restTemplate.exchange(
+                    userManagerUrl.concat("/api/users/search?userId=").concat(userId),
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<BaseAppResponse<UserDto>>() {
+                    }
+            );
+
+            return Optional.of(response)
+                    .filter(resp -> resp.getStatusCode().is2xxSuccessful())
+                    .map(ResponseEntity::getBody)
+                    .map(BaseAppResponse::getData)
+                    .map(userDto -> {
+                        if (userDto.getFirstName() != null && userDto.getLastName() != null) {
+                            return userDto.getFirstName() + " " + userDto.getLastName();
+                        } else if (userDto.getFirstName() != null) {
+                            return userDto.getFirstName();
+                        } else if (userDto.getLastName() != null) {
+                            return userDto.getLastName();
+                        } else {
+                            return userDto.getUsername();
+                        }
+                    })
+                    .orElse(null);
+        } catch (RestClientException e) {
+            log.error("Unable to retrieve user full name for userId {} - Error: {}", userId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Update notification status (From Unread to Read) for a specific notification
+     *
+     * @param notificationId : ID of notification
+     */
+    @Override
+    public void updateNotificationStatusToRead(String notificationId) {
+        Optional<Notification> optionalNotification = notificationRepository.findById(notificationId);
+        if (optionalNotification.isEmpty())
+            throw new DataNotFoundException("Notification with id: " + notificationId + " not found in DB");
+
+        Notification notification = optionalNotification.get();
+        notification.setNotificationStatus(NotificationStatus.READ.toString());
+        notificationRepository.save(notification);
     }
 
     /**
@@ -376,9 +434,10 @@ public class NotificationService implements INotificationService {
                         .notificationType(NotificationType.ASSIGNMENT.toString())
                         .notificationStatus(NotificationStatus.UNREAD.toString())
                         .messageStatus(assignment.getStatus())
-                        .productionModule(assignment.getProductionModule())
+                        .module(assignment.getModule())
                         .userId(null)
                         .user(null)
+                        .moduleName(assignment.getModuleName())
                         .smartService(null)
                         .relatedAssignment(assignment.getId())
                         .relatedEvent(null)
@@ -427,7 +486,8 @@ public class NotificationService implements INotificationService {
                 .notificationType(original.getNotificationType())
                 .notificationStatus(original.getNotificationStatus())
                 .messageStatus(original.getMessageStatus())
-                .productionModule(original.getProductionModule())
+                .module(original.getModule())
+                .moduleName(original.getModuleName())
                 .relatedAssignment(original.getRelatedAssignment())
                 .timestamp(original.getTimestamp())
                 .priority(original.getPriority())

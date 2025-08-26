@@ -74,7 +74,7 @@ class NotificationServiceTests {
     private Notification notification;
     private Notification superAdminNotification;
 
-    private static final String KC_URL = "http://localhost:8080/api/keycloak";
+    private static final String USER_MANAGER_URL = "http://localhost:8080/api/keycloak";
     private static final String TOKEN_URL = "http://localhost:9080/api/token";
     private static final String CLIENT = "client";
     private static final String CLIENT_SECRET = "secret";
@@ -82,7 +82,7 @@ class NotificationServiceTests {
     @BeforeEach
     void setup() {
         // Configure service properties
-        ReflectionTestUtils.setField(notificationService, "userManagerUrl", KC_URL);
+        ReflectionTestUtils.setField(notificationService, "userManagerUrl", USER_MANAGER_URL);
         ReflectionTestUtils.setField(notificationService, "tokenUri", TOKEN_URL);
         ReflectionTestUtils.setField(notificationService, "client", CLIENT);
         ReflectionTestUtils.setField(notificationService, "clientSecret", CLIENT_SECRET);
@@ -92,8 +92,11 @@ class NotificationServiceTests {
             .id("1")
             .timestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC))
             .userId("user1")
+                .user("user1")
             .notificationStatus(NotificationStatus.UNREAD.toString())
             .description("Test Notification")
+                .module("test-module-1")
+            .moduleName("Test Module Name")
             .build();
 
         notification = new Notification();

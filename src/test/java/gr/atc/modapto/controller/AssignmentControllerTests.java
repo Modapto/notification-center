@@ -9,10 +9,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.CoreMatchers.is;
 
-import gr.atc.modapto.repository.AssignmentRepository;
-import gr.atc.modapto.repository.EventMappingsRepository;
-import gr.atc.modapto.repository.EventRepository;
-import gr.atc.modapto.repository.NotificationRepository;
+import gr.atc.modapto.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -82,6 +79,9 @@ class AssignmentControllerTests {
 
     @MockitoBean
     private EventMappingsRepository eventMappingsRepository;
+
+    @MockitoBean
+    private ModaptoModuleRepository modaptoModuleRepository;
 
     @Autowired
     private MockMvc mockMvc;
@@ -361,7 +361,7 @@ class AssignmentControllerTests {
         newAssignment.setDescription("Test");
         newAssignment.setPriority(MessagePriority.HIGH.toString());
         newAssignment.setTargetUserId("456");
-        newAssignment.setProductionModule("Test Module");
+        newAssignment.setModule("Test Module");
 
         CompletableFuture<Void> completableFuture = new CompletableFuture<>();
         completableFuture.complete(null);

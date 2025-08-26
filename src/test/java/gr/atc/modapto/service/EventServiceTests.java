@@ -65,7 +65,8 @@ class EventServiceTests {
                 .id("1")
                 .eventType("Test")
                 .smartService("Test Smart Service")
-                .productionModule("Test Production Module")
+                .module("Test Production Module")
+                .moduleName("Test Production Module Name")
                 .eventType(null)
                 .timestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC))
                 .description(null)
@@ -76,7 +77,7 @@ class EventServiceTests {
         testEvent.setId("1");
         testEvent.setEventType("Test");
         testEvent.setSmartService("Test Smart Service");
-        testEvent.setProductionModule("Test Production Module");
+        testEvent.setModule("Test Production Module");
         testEvent.setEventType(null);
         testEvent.setTimestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC));
         testEvent.setDescription(null);

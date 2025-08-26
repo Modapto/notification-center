@@ -1,9 +1,6 @@
 package gr.atc.modapto;
 
-import gr.atc.modapto.repository.AssignmentRepository;
-import gr.atc.modapto.repository.EventMappingsRepository;
-import gr.atc.modapto.repository.EventRepository;
-import gr.atc.modapto.repository.NotificationRepository;
+import gr.atc.modapto.repository.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,6 +31,9 @@ class ModaptoNotificationCenterApplicationTests {
 
 	@MockitoBean
 	private EventMappingsRepository eventMappingsRepository;
+
+	@MockitoBean
+	private ModaptoModuleRepository modaptoModuleRepository;
 
 	@Test
 	void contextLoads() {

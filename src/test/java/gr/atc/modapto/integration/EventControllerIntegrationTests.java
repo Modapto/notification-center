@@ -63,7 +63,7 @@ class EventControllerIntegrationTests extends SetupTestContainersEnvironment {
         testEvent = EventDto.builder()
                 .eventType("Test")
                 .smartService("Test Smart Service")
-                .productionModule("Test Production Module")
+                .module("Test Production Module")
                 .eventType(null)
                 .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
                 .description(null)

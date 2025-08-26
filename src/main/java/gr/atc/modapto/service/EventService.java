@@ -50,6 +50,7 @@ public class EventService implements IEventService {
     public String storeIncomingEvent(EventDto eventDto) {
         try {
             Event event = modelMapper.map(eventDto, Event.class);
+
             return eventRepository.save(event).getId();
         } catch (MappingException e){
             throw new ModelMappingException(EVENT_MAPPER_ERROR + e.getMessage());
