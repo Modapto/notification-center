@@ -1,13 +1,13 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Notifacation Center API",
+    "title": "Notification Center API",
     "description": "API documentation for Notification Center Service of MODAPTO",
     "version": "0.6-SNAPSHOT"
   },
   "servers": [
     {
-      "url": "http://localhost:8091"
+      "url": "https://services.modapto.atc.gr"
     }
   ],
   "tags": [
@@ -31,7 +31,7 @@
           "Notification Controller"
         ],
         "summary": "Update notification status command of a specific Notification (From Unread to Read)",
-        "operationId": "updateNotificationStatus",
+        "operationId": "updateNotificationStatusToRead",
         "parameters": [
           {
             "name": "notificationId",
@@ -48,7 +48,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -58,7 +58,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -68,7 +68,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -78,7 +78,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -124,7 +124,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -134,7 +134,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -144,7 +144,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -154,7 +154,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -164,7 +164,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -198,7 +198,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -208,7 +208,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -218,7 +218,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -228,7 +228,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -264,7 +264,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -274,7 +274,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -284,7 +284,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -294,7 +294,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -338,7 +338,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -348,7 +348,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -358,7 +358,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -368,7 +368,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -402,7 +402,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -412,7 +412,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -422,7 +422,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -432,7 +432,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -478,7 +478,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -488,7 +488,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -498,7 +498,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -508,7 +508,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -544,7 +544,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -554,7 +554,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -564,7 +564,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -574,7 +574,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -610,7 +610,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -620,7 +620,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -630,7 +630,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -640,7 +640,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -704,11 +704,7 @@
           "200": {
             "description": "Notifications retrieved successfully!",
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponse"
-                }
-              }
+              "application/json": {}
             }
           },
           "401": {
@@ -716,7 +712,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -726,7 +722,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -736,7 +732,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -772,7 +768,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -782,7 +778,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -792,7 +788,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -802,7 +798,71 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Notification Controller"
+        ],
+        "summary": "Delete notification by ID",
+        "operationId": "deleteNotificationByIdEndpoint",
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification deleted successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication process failed!",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid authorization parameters. Check JWT or CSRF Token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification with id [ID] not found in DB",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -874,11 +934,7 @@
           "200": {
             "description": "Notifications retrieved successfully!",
             "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
-                }
-              }
+              "application/json": {}
             }
           },
           "401": {
@@ -886,7 +942,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -896,7 +952,17 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invalid sort attributes",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -932,7 +998,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -942,7 +1008,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -952,7 +1018,235 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListNotificationDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/api/notifications/user/{userId}/notificationType/{notificationType}": {
+      "get": {
+        "tags": [
+          "Notification Controller"
+        ],
+        "summary": "Retrieve all notification per UserID and Notification Type (Event/Assignment)",
+        "operationId": "getAllNotificationPerUserAndPerNotificationType",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notificationType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "sortAttribute",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "timestamp"
+            }
+          },
+          {
+            "name": "isAscending",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved successfully!",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "Validation Error - Invalid notification type",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication process failed!",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid authorization parameters. Check JWT or CSRF Token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invalid sort attributes",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/api/notifications/notificationType/{notificationType}": {
+      "get": {
+        "tags": [
+          "Notification Controller"
+        ],
+        "summary": "Retrieve all Notifications by Notification Type (Event / Assignment) for Super-Admins",
+        "operationId": "getAllNotificationsByNotificationType",
+        "parameters": [
+          {
+            "name": "notificationType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "sortAttribute",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "timestamp"
+            }
+          },
+          {
+            "name": "isAscending",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved successfully!",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "Validation Error - Invalid notification type",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication process failed!",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid authorization parameters. You don't have the rights to access the resource or check the JWT and CSRF Tokens",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invalid sort attributes",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1018,7 +1312,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoEventDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1028,7 +1322,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoEventDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1038,7 +1332,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoEventDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1048,7 +1342,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoEventDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1074,7 +1368,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListEventMappingsDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1084,7 +1378,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListEventMappingsDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1094,7 +1388,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListEventMappingsDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1104,7 +1398,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseListEventMappingsDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1170,7 +1464,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1180,7 +1474,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1190,7 +1484,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1200,7 +1494,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1290,7 +1584,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1300,7 +1594,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1310,7 +1604,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1320,7 +1614,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -1336,26 +1630,32 @@
   },
   "components": {
     "schemas": {
-      "BaseAppResponseString": {
+      "BaseAppResponse": {
         "type": "object",
         "properties": {
           "data": {
-            "type": "string"
+            "type": "string",
+            "description": "Response data"
           },
           "errors": {
-            "type": "object"
+            "type": "object",
+            "description": "Error details"
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Response message"
           },
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Success/Failure Flag"
           },
           "timestamp": {
             "type": "string",
+            "description": "Timestamp",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Standard application response wrapper"
       },
       "EventMappingsDto": {
         "title": "Event Mapping",
@@ -1417,7 +1717,13 @@
           "sourceUserId": {
             "type": "string"
           },
+          "sourceUser": {
+            "type": "string"
+          },
           "targetUserId": {
+            "type": "string"
+          },
+          "targetUser": {
             "type": "string"
           },
           "status": {
@@ -1432,7 +1738,10 @@
           "description": {
             "type": "string"
           },
-          "productionModule": {
+          "module": {
+            "type": "string"
+          },
+          "moduleName": {
             "type": "string"
           },
           "timestamp": {
@@ -1448,345 +1757,6 @@
           }
         },
         "description": "Assignment Object Representation"
-      },
-      "BaseAppResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "object"
-          },
-          "errors": {
-            "type": "object"
-          },
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "BaseAppResponsePaginatedResultsDtoNotificationDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/PaginatedResultsDtoNotificationDto"
-          },
-          "errors": {
-            "type": "object"
-          },
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "NotificationDto": {
-        "title": "Notification",
-        "type": "object",
-        "properties": {
-          "notificationId": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "notificationType": {
-            "type": "string"
-          },
-          "relatedEvent": {
-            "type": "string"
-          },
-          "relatedAssignment": {
-            "type": "string"
-          },
-          "notificationStatus": {
-            "type": "string"
-          },
-          "messageStatus": {
-            "type": "string"
-          },
-          "sourceComponent": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "productionModule": {
-            "type": "string"
-          },
-          "smartService": {
-            "type": "string"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "priority": {
-            "type": "string"
-          }
-        },
-        "description": "Notification Object Representation"
-      },
-      "PaginatedResultsDtoNotificationDto": {
-        "title": "Paginated Results",
-        "type": "object",
-        "properties": {
-          "results": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NotificationDto"
-            }
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalElements": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "lastPage": {
-            "type": "boolean"
-          }
-        },
-        "description": "Paginated Result Data Transfer Object"
-      },
-      "BaseAppResponseNotificationDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/NotificationDto"
-          },
-          "errors": {
-            "type": "object"
-          },
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "BaseAppResponseListNotificationDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NotificationDto"
-            }
-          },
-          "errors": {
-            "type": "object"
-          },
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "BaseAppResponsePaginatedResultsDtoEventDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/PaginatedResultsDtoEventDto"
-          },
-          "errors": {
-            "type": "object"
-          },
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "EventDto": {
-        "title": "Event",
-        "required": [
-          "priority",
-          "productionModule",
-          "topic"
-        ],
-        "type": "object",
-        "properties": {
-          "eventId": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "productionModule": {
-            "type": "string"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "priority": {
-            "type": "string"
-          },
-          "eventType": {
-            "type": "string"
-          },
-          "sourceComponent": {
-            "type": "string"
-          },
-          "smartService": {
-            "type": "string"
-          },
-          "topic": {
-            "type": "string"
-          },
-          "results": {
-            "$ref": "#/components/schemas/JsonNode"
-          }
-        },
-        "description": "Event Object Representation"
-      },
-      "JsonNode": {
-        "type": "object"
-      },
-      "PaginatedResultsDtoEventDto": {
-        "title": "Paginated Results",
-        "type": "object",
-        "properties": {
-          "results": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventDto"
-            }
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalElements": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "lastPage": {
-            "type": "boolean"
-          }
-        },
-        "description": "Paginated Result Data Transfer Object"
-      },
-      "BaseAppResponseListEventMappingsDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventMappingsDto"
-            }
-          },
-          "errors": {
-            "type": "object"
-          },
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "BaseAppResponsePaginatedResultsDtoAssignmentDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/PaginatedResultsDtoAssignmentDto"
-          },
-          "errors": {
-            "type": "object"
-          },
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "PaginatedResultsDtoAssignmentDto": {
-        "title": "Paginated Results",
-        "type": "object",
-        "properties": {
-          "results": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AssignmentDto"
-            }
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalElements": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "lastPage": {
-            "type": "boolean"
-          }
-        },
-        "description": "Paginated Result Data Transfer Object"
-      },
-      "BaseAppResponseAssignmentDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/AssignmentDto"
-          },
-          "errors": {
-            "type": "object"
-          },
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
       }
     },
     "securitySchemes": {
