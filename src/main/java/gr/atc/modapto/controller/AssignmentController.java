@@ -1,7 +1,9 @@
 package gr.atc.modapto.controller;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
-import java.util.concurrent.CompletableFuture;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -9,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
@@ -25,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import gr.atc.modapto.dto.AssignmentCommentDto;
 import gr.atc.modapto.dto.AssignmentDto;
 import gr.atc.modapto.dto.PaginatedResultsDto;
-import gr.atc.modapto.service.IAssignmentService;
+import gr.atc.modapto.service.interfaces.IAssignmentService;
 import gr.atc.modapto.util.JwtUtils;
 import gr.atc.modapto.validation.ValidAssignmentStatus;
 import gr.atc.modapto.validation.ValidAssignmentType;
@@ -33,6 +36,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,6 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @Validated
 @Slf4j
+@Tag(name="Assignment Controller", description = "Manage assignments of users")
 public class AssignmentController {
 
     private final IAssignmentService assignmentService;
@@ -57,13 +63,14 @@ public class AssignmentController {
      * @param isAscending : Sort order
      * @return Page<AssignmentDto> : Assignments
      */
-    @Operation(summary = "Retrieve all Assignments", security = @SecurityRequirement(name = "bearerToken"))
+    @Operation(summary = "Retrieve all Assignments for Super-Admins usage", security = @SecurityRequirement(name = "bearerToken"))
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = ASSIGNMENT_SUCCESS),
             @ApiResponse(responseCode = "400", description = "Invalid sort attribute."),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
-            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token")
+            @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. You don't have the rights to access the resource or check the JWT and CSRF Tokens")
     })
+    @PreAuthorize(value = "hasRole('SUPER_ADMIN')")
     @GetMapping
     public ResponseEntity<BaseAppResponse<PaginatedResultsDto<AssignmentDto>>> getAllAssignments(
             @RequestParam(required = false, defaultValue = "0") int page,
@@ -156,7 +163,7 @@ public class AssignmentController {
             @ApiResponse(responseCode = "200", description = "Assignment retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
-            @ApiResponse(responseCode = "417", description = "Assignment with id [ID] not found in DB")
+            @ApiResponse(responseCode = "404", description = "Assignment with id [ID] not found in DB")
     })
     @GetMapping("/{assignmentId}")
     public ResponseEntity<BaseAppResponse<AssignmentDto>> getAssignmentById(@PathVariable String assignmentId) {
@@ -182,22 +189,15 @@ public class AssignmentController {
         // Add current user's ID in message
         assignmentDto.setSourceUserId(JwtUtils.extractUserId(jwt));
 
+        // Generate System Message
+        AssignmentCommentDto systemComment = new AssignmentCommentDto();
+        systemComment.setComment("Task assignment has been initiated");
+        assignmentDto.setComments(List.of(systemComment));
+
         // Store Assignment in DB
         String assignmentId = assignmentService.storeAssignment(assignmentDto);
         if (assignmentId == null)
             return new ResponseEntity<>(BaseAppResponse.error("Unable to create and store assignment"), HttpStatus.INTERNAL_SERVER_ERROR);
-
-        assignmentDto.setId(assignmentId);
-        // Create Notification and Notify relevant user asynchronously
-        CompletableFuture<Void> notificationCreationAsync = assignmentService.createNotificationAndNotifyUser(assignmentDto);
-
-        // Log the notification creation process
-        CompletableFuture.allOf(notificationCreationAsync)
-                .thenRun(() -> log.info("Notification creation process completed"))
-                .exceptionally(ex -> {
-                    log.error("Notification creation process failed", ex);
-                    return null;
-                });
 
         // Return success message
         return new ResponseEntity<>(BaseAppResponse.success(assignmentId, "Assignment created successfully"), HttpStatus.OK);
@@ -219,8 +219,14 @@ public class AssignmentController {
             @ApiResponse(responseCode = "500", description = "Unable to create and store assignment")
     })
     @PutMapping("/{assignmentId}")
-    public ResponseEntity<BaseAppResponse<String>> updateAssignment(@PathVariable String assignmentId, @RequestBody AssignmentDto assignmentDto) {
-        assignmentService.updateAssignment(assignmentId, assignmentDto);
+    public ResponseEntity<BaseAppResponse<String>> updateAssignment(@AuthenticationPrincipal Jwt jwt, @PathVariable String assignmentId, @RequestBody AssignmentDto assignmentDto) {
+        // Check is the user is the owner or the recipient of the assignment
+        String userId = JwtUtils.extractUserId(jwt);
+
+        // Check whether assignment status has been changed
+        assignmentDto.setId(assignmentId);
+        assignmentService.updateAssignment(assignmentDto, userId);
+
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment updated successfully!"), HttpStatus.OK);
     }
 
@@ -239,8 +245,12 @@ public class AssignmentController {
             @ApiResponse(responseCode = "500", description = "Unable to create and store assignment")
     })
     @PutMapping("/{assignmentId}/comments")
-    public ResponseEntity<BaseAppResponse<String>> updateAssignmentComments(@PathVariable String assignmentId, @RequestBody AssignmentCommentDto assignmentComment) {
-        assignmentService.updateAssignmentComments(assignmentId, assignmentComment);
+    public ResponseEntity<BaseAppResponse<String>> updateAssignmentComments(@AuthenticationPrincipal Jwt jwt, @PathVariable String assignmentId, @RequestBody @Valid AssignmentCommentDto assignmentComment) {
+        // Retrieve current's user ID
+        String userId = JwtUtils.extractUserId(jwt);
+
+        assignmentComment.setDatetime(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
+        assignmentService.updateAssignmentComments(assignmentId, assignmentComment, userId);
         return new ResponseEntity<>(BaseAppResponse.success(null, "Assignment comments updated successfully!"), HttpStatus.OK);
     }
 
@@ -255,7 +265,7 @@ public class AssignmentController {
             @ApiResponse(responseCode = "200", description = "Assignment deleted successfully!"),
             @ApiResponse(responseCode = "401", description = "Authentication process failed!"),
             @ApiResponse(responseCode = "403", description = "Invalid authorization parameters. Check JWT or CSRF Token"),
-            @ApiResponse(responseCode = "417", description = "Assignment with id [ID] not found in DB")
+            @ApiResponse(responseCode = "404", description = "Assignment with id [ID] not found in DB")
     })
     @DeleteMapping("/{assignmentId}")
     public ResponseEntity<BaseAppResponse<String>> deleteAssignmentById(@PathVariable String assignmentId) {

@@ -1,6 +1,4 @@
-package gr.atc.modapto.service;
-
-import java.util.concurrent.CompletableFuture;
+package gr.atc.modapto.service.interfaces;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,13 +15,11 @@ public interface IAssignmentService {
 
     AssignmentDto retrieveAssignmentById(String assignmentId);
 
-    void updateAssignment(String assignmentId, AssignmentDto assignmentDto);
+    void updateAssignment(AssignmentDto assignmentDto, String userId);
 
     String storeAssignment(AssignmentDto assignmentDto);
 
-    CompletableFuture<Void> createNotificationAndNotifyUser(AssignmentDto assignmentDto);
-
-    void updateAssignmentComments(String assignmentId, AssignmentCommentDto assignmentComment);
+    void updateAssignmentComments(String assignmentId, AssignmentCommentDto assignmentComment, String userId);
 
     boolean deleteAssignmentById(String assignmentId);
 }

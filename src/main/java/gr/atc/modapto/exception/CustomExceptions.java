@@ -30,4 +30,13 @@ public class CustomExceptions {
             super(message);
         }
     }
+
+    /*
+     * Exception thrown when a user that is not involved in an assignment tries to update it
+     */
+    public static class UnauthorizedAssignmentUpdateException extends RuntimeException{
+        public UnauthorizedAssignmentUpdateException(String message){
+            super(message);
+        }
+    }
 }

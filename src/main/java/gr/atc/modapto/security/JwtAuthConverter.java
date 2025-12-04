@@ -1,12 +1,6 @@
 package gr.atc.modapto.security;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -21,6 +15,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
+
+import static java.util.stream.Collectors.toList;
 
 @Component
 @Slf4j
@@ -41,8 +37,7 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
         return new JwtAuthenticationToken(jwt, authorities,jwt.getClaim("preferred_username"));
     }
 
-    @SuppressWarnings("unchecked")
-    private List<SimpleGrantedAuthority> extractKeycloakRoles(Jwt jwt) {
+    private Collection<GrantedAuthority> extractKeycloakRoles(Jwt jwt) {
         try {
             Set<String> roles = new HashSet<>();
 
@@ -54,32 +49,48 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
 
             // Extract resource roles
             Map<String, Object> resourceAccess = jwt.getClaim(CLAIM_RESOURCE_ACCESS);
+
             if (resourceAccess != null) {
                 resourceAccess.values().stream()
-                        .filter(Map.class::isInstance)
-                        .map(obj -> (Map<String, Object>) obj)
+                        .filter(Map.class::isInstance) // Ensure instance of Map
+                        .map(obj -> {
+                            Map<?, ?> map = (Map<?, ?>) obj;
+                            return castToMapStringObject(map);
+                        })
                         .map(this::extractRolesFromClaim)
                         .forEach(roles::addAll);
             }
 
             return roles.stream()
-                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList();
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                    .collect(toList());
 
         }catch (Exception e){
             return Collections.emptyList();
         }
     }
 
+    /**
+     * Safely cast a raw Map to Map<String, Object> while checking key types.
+     */
+    private Map<String, Object> castToMapStringObject(Map<?, ?> rawMap) {
+        Map<String, Object> safeMap = new HashMap<>();
+        for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+            if (entry.getKey() instanceof String) {
+                safeMap.put((String) entry.getKey(), entry.getValue());
+            }
+        }
+        return safeMap;
+    }
+
     private List<String> extractRolesFromClaim(Map<String, Object> claimMap) {
         Object rolesObj = claimMap.get(CLAIM_ROLES);
-        if (rolesObj instanceof List<?> list) {
-            return list.stream()
+        if (rolesObj instanceof List<?>) {
+            return ((List<?>) rolesObj).stream()
                     .filter(String.class::isInstance)
                     .map(String.class::cast)
                     .toList();
         }
         return Collections.emptyList();
     }
-
-
 }

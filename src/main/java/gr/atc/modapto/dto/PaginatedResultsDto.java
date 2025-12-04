@@ -1,5 +1,6 @@
 package gr.atc.modapto.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Schema(description = "Paginated Result Data Transfer Object", title = "Paginated Results")
 public class PaginatedResultsDto<T> {
 
     @JsonProperty("results")

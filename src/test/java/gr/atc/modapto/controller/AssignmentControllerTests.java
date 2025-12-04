@@ -1,12 +1,15 @@
 package gr.atc.modapto.controller;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.CoreMatchers.is;
+
+import gr.atc.modapto.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,20 +17,26 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -42,12 +51,37 @@ import gr.atc.modapto.dto.AssignmentDto;
 import gr.atc.modapto.enums.AssignmentStatus;
 import gr.atc.modapto.enums.MessagePriority;
 import gr.atc.modapto.exception.CustomExceptions;
-import gr.atc.modapto.service.IAssignmentService;
+import gr.atc.modapto.service.interfaces.IAssignmentService;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("local")
+@WebMvcTest(AssignmentController.class)
+@ActiveProfiles("test")
 class AssignmentControllerTests {
+
+    @Autowired
+    private WebApplicationContext context;
+
+    @MockitoBean
+    private ElasticsearchOperations elasticsearchOperations;
+
+    @MockitoBean
+    private ElasticsearchTemplate elasticsearchTemplate;
+
+    @MockitoBean
+    private NotificationRepository notificationRepository;
+
+    @MockitoBean
+    private AssignmentRepository assignmentRepository;
+
+    @MockitoBean
+    private EventRepository eventRepository;
+
+    @MockitoBean
+    private EventMappingsRepository eventMappingsRepository;
+
+    @MockitoBean
+    private ModaptoModuleRepository modaptoModuleRepository;
 
     @Autowired
     private MockMvc mockMvc;
@@ -55,7 +89,7 @@ class AssignmentControllerTests {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private IAssignmentService assignmentService;
 
     private AssignmentDto testAssignment;
@@ -65,22 +99,26 @@ class AssignmentControllerTests {
 
     @BeforeEach
     void setup() {
-        testAssignment = AssignmentDto.builder()
-                .id("123")
-                .priority(MessagePriority.HIGH)
-                .sourceUserId("sourceUser")
-                .targetUserId("targetUser")
-                .sourceUserComments(new HashMap<>())
-                .targetUserComments(new HashMap<>())
-                .timestamp(LocalDateTime.now())
-                .status(AssignmentStatus.OPEN)
-                .timestampUpdated(LocalDateTime.now())
-                .description("Test")
+        mockMvc = MockMvcBuilders
+                .webAppContextSetup(context)
+                .apply(springSecurity())
                 .build();
 
-        testComment = new AssignmentCommentDto();
-        testComment.setSourceUserComment("Test Source Comment");
-        testComment.setTargetUserComment("Test Target Comment");
+        testComment = AssignmentCommentDto.builder()
+                .comment("Test comment")
+                .build();
+
+        testAssignment = AssignmentDto.builder()
+                .id("123")
+                .priority(MessagePriority.HIGH.toString())
+                .sourceUserId("sourceUser")
+                .targetUserId("targetUser")
+                .comments(List.of(testComment))
+                .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
+                .status(AssignmentStatus.OPEN.toString())
+                .timestampUpdated(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
+                .description("Test")
+                .build();
 
         paginatedResults = new PageImpl<>(List.of(testAssignment), PageRequest.of(0, 10), 1);
 
@@ -88,8 +126,9 @@ class AssignmentControllerTests {
         claims.put("realm_access", Map.of("roles", List.of("SUPER_ADMIN")));
         claims.put("resource_access", Map.of("modapto", Map.of("roles", List.of("SUPER_ADMIN"))));
         claims.put("sub", "user");
-        claims.put("pilot", "TEST");
+        claims.put("pilot_code", "SEW");
         claims.put("pilot_role", "TEST");
+        claims.put("user_role", "TEST_ROLE");
 
         String tokenValue = "mock.jwt.token";
         jwt = Jwt.withTokenValue(tokenValue)
@@ -99,6 +138,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get All Assignments: Success")
+    @WithMockUser
     @Test
     void givenValidRequest_whenGetAllAssignments_thenReturnAssignmentsList() throws Exception {
         given(assignmentService.retrieveAllAssignments(any())).willReturn(paginatedResults);
@@ -114,6 +154,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get All Assignments: Invalid Sort Attribute")
+    @WithMockUser
     @Test
     void givenInvalidSortAttribute_whenGetAllAssignments_thenReturnBadRequest() throws Exception {
         mockMvc.perform(get("/api/assignments?sortAttribute=invalidAttribute")
@@ -124,6 +165,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get Assignments per User (No filters): Success")
+    @WithMockUser
     @Test
     void givenValidUserId_whenGetAllAssignmentPerUser_thenReturnAssignmentsList() throws Exception {
         given(assignmentService.retrieveAssignmentsPerUserId(any(), any(), any()))
@@ -138,6 +180,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get Assignments per User (With Status Filter): Success")
+    @WithMockUser
     @Test
     void givenValidUserIdAndStatus_whenGetAllAssignmentPerUser_thenReturnFilteredAssignments() throws Exception {
         // Given
@@ -156,6 +199,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get Assignments per User (With Type Filter): Success")
+    @WithMockUser
     @Test
     void givenValidUserIdAndType_whenGetAllAssignmentPerUser_thenReturnFilteredAssignments() throws Exception {
         // Mocking the service call for a valid type filter
@@ -173,6 +217,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get Assignments per User (With Status and Type Filter): Success")
+    @WithMockUser
     @Test
     void givenValidUserIdStatusAndType_whenGetAllAssignmentPerUser_thenReturnFilteredAssignments() throws Exception {
         // Mocking the service call for both status and type filters
@@ -191,6 +236,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get Assignments per User (Invalid Sort Attribute): Bad Request")
+    @WithMockUser
     @Test
     void givenInvalidSortAttribute_whenGetAllAssignmentPerUser_thenReturnBadRequest() throws Exception {
         mockMvc.perform(get("/api/assignments/user/123")
@@ -202,6 +248,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get Assignments per User (With Pagination): Success")
+    @WithMockUser
     @Test
     void givenValidUserIdAndPagination_whenGetAllAssignmentPerUser_thenReturnPaginatedResults() throws Exception {
         // Mock Pagination
@@ -225,6 +272,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get Assignments per User (Invalid Status Filter): Bad Request")
+    @WithMockUser
     @Test
     void givenInvalidStatusFilter_whenGetAllAssignmentPerUser_thenReturnBadRequest() throws Exception {
         mockMvc.perform(get("/api/assignments/user/123")
@@ -232,11 +280,12 @@ class AssignmentControllerTests {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)))
-                .andExpect(jsonPath("$.errors.status", is("Invalid assignment status. Only OPEN, ACCEPTED, IN_PROGRESS and COMPLETED are allowed.")))
+                .andExpect(jsonPath("$.errors.status", is("Invalid assignment status. Only 'Open', 'Re_Open', 'In_Progress' and 'Done' are allowed.")))
                 .andExpect(jsonPath("$.message", is("Validation failed")));
     }
 
     @DisplayName("Get Assignments per User (Invalid Type Filter): Bad Request")
+    @WithMockUser
     @Test
     void givenInvalidTypeFilter_whenGetAllAssignmentPerUser_thenReturnBadRequest() throws Exception {
         mockMvc.perform(get("/api/assignments/user/123")
@@ -249,6 +298,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Get Assignment by ID: Success")
+    @WithMockUser
     @Test
     void givenValidAssignmentId_whenGetAssignmentById_thenReturnAssignment() throws Exception {
         given(assignmentService.retrieveAssignmentById("assignmentId")).willReturn(testAssignment);
@@ -258,27 +308,31 @@ class AssignmentControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.assignmentId", is("123")))
-                .andExpect(jsonPath("$.message", is("Assignment retrieved successfully")));
+                .andExpect(jsonPath("$.message", is("Assignment retrieved successfully")))
+                .andExpect(jsonPath("$.data.comments[0].comment", is("Test comment")));
     }
 
     @DisplayName("Get Assignment by ID: Not Found")
+    @WithMockUser
     @Test
     void givenInvalidAssignmentId_whenGetAssignmentById_thenReturnNotFound() throws Exception {
         given(assignmentService.retrieveAssignmentById(any())).willThrow(CustomExceptions.DataNotFoundException.class);
 
         mockMvc.perform(get("/api/assignments/invalidId")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isExpectationFailed())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", is("Requested resource not found in DB")));
     }
 
     @DisplayName("Delete Assignment by ID: Success")
+    @WithMockUser
     @Test
     void givenValidAssignmentId_whenDeleteAssignmentById_thenReturnSuccess() throws Exception {
         given(assignmentService.deleteAssignmentById("assignmentId")).willReturn(true);
 
         mockMvc.perform(delete("/api/assignments/assignmentId")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
@@ -286,13 +340,15 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Delete Assignment by ID: Not Found message")
+    @WithMockUser
     @Test
     void givenInvalidAssignmentId_whenDeleteAssignmentById_thenReturnNotFoundMessage() throws Exception {
         given(assignmentService.deleteAssignmentById(anyString())).willThrow(CustomExceptions.DataNotFoundException.class);
 
         mockMvc.perform(delete("/api/assignments/invalidId")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isExpectationFailed())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", is("Requested resource not found in DB")));
     }
@@ -303,15 +359,14 @@ class AssignmentControllerTests {
         // Given
         AssignmentDto newAssignment = new AssignmentDto();
         newAssignment.setDescription("Test");
-        newAssignment.setPriority(MessagePriority.HIGH);
+        newAssignment.setPriority(MessagePriority.HIGH.toString());
         newAssignment.setTargetUserId("456");
-        newAssignment.setProductionModule("Test Module");
+        newAssignment.setModule("Test Module");
 
         CompletableFuture<Void> completableFuture = new CompletableFuture<>();
         completableFuture.complete(null);
 
         given(assignmentService.storeAssignment(any(AssignmentDto.class))).willReturn("123");
-        given(assignmentService.createNotificationAndNotifyUser(any(AssignmentDto.class))).willReturn(completableFuture);
 
         // Mock JWT authentication
         JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
@@ -319,6 +374,7 @@ class AssignmentControllerTests {
 
         // When - Then
         mockMvc.perform(post("/api/assignments/create")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newAssignment)))
                 .andExpect(status().isOk())
@@ -328,6 +384,7 @@ class AssignmentControllerTests {
     }
 
     @DisplayName("Create Assignment: Failure")
+    @WithMockUser
     @Test
     void givenInvalidData_whenCreateAssignment_thenReturnServerError() throws Exception {
         given(assignmentService.storeAssignment(any(AssignmentDto.class))).willReturn(null);
@@ -337,6 +394,7 @@ class AssignmentControllerTests {
         SecurityContextHolder.getContext().setAuthentication(jwtAuthenticationToken);
 
         mockMvc.perform(post("/api/assignments/create")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testAssignment)))
                 .andExpect(status().isInternalServerError())
@@ -350,16 +408,19 @@ class AssignmentControllerTests {
         given(assignmentService.storeAssignment(any(AssignmentDto.class))).willReturn(null);
 
         mockMvc.perform(post("/api/assignments/create")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testAssignment)))
                 .andExpect(status().isUnauthorized());
     }
 
     @DisplayName("Update Assignment: Success")
+    @WithMockUser
     @Test
     void givenValidAssignmentIdAndDto_whenUpdateAssignment_thenReturnSuccess() throws Exception {
         // When - Then
         mockMvc.perform(put("/api/assignments/assignmentId")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testAssignment)))
                 .andExpect(status().isOk())
@@ -367,14 +428,68 @@ class AssignmentControllerTests {
                 .andExpect(jsonPath("$.message", is("Assignment updated successfully!")));
     }
 
+    @DisplayName("Update Assignment Status and Priority: Success / Description and Comments are also changing")
+    @WithMockUser
+    @Test
+    void givenValidAssignmentIdWithUpdatedStatusAndPriority_whenUpdateAssignment_thenReturnSuccess() throws Exception {
+        // Given
+        AssignmentDto mockAssignment = AssignmentDto.builder()
+                .priority(MessagePriority.HIGH.toString())
+                .comments(List.of())
+                .status(AssignmentStatus.OPEN.toString())
+                .build();
+
+        // Mock JWT authentication
+        JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
+        SecurityContextHolder.getContext().setAuthentication(jwtAuthenticationToken);
+
+        // When - Then
+        mockMvc.perform(put("/api/assignments/assignmentId")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(mockAssignment)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Assignment updated successfully!")));
+    }
+
     @DisplayName("Update Assignment Comments: Success")
+    @WithMockUser
     @Test
     void givenValidAssignmentIdAndCommentDto_whenUpdateAssignmentComments_thenReturnSuccess() throws Exception {
+        // Given
+        // Mock JWT authentication
+        JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
+        SecurityContextHolder.getContext().setAuthentication(jwtAuthenticationToken);
+
+        // When - Then
         mockMvc.perform(put("/api/assignments/assignmentId/comments")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testComment)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", is("Assignment comments updated successfully!")));
+    }
+
+    @DisplayName("Update Assignment Comments: Validator Error")
+    @WithMockUser
+    @Test
+    void givenAssignmentIdAndInvalidCommentDto_whenUpdateAssignmentComments_thenReturnError() throws Exception {
+        // Given
+        AssignmentCommentDto invalidComment = new AssignmentCommentDto();
+
+        // Mock JWT authentication
+        JwtAuthenticationToken jwtAuthenticationToken = new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
+        SecurityContextHolder.getContext().setAuthentication(jwtAuthenticationToken);
+
+        // When - Then
+        mockMvc.perform(put("/api/assignments/assignmentId/comments")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidComment)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Validation failed")));
     }
 }

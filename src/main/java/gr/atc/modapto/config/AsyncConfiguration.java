@@ -23,6 +23,7 @@ public class AsyncConfiguration {
         taskExecutor.setKeepAliveSeconds(200); // Allowed idle time for non-core threads
         // Retry async methods if they fails
         taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        taskExecutor.setThreadNamePrefix("AsyncEventThread-");
         taskExecutor.initialize();
         return taskExecutor;
     }

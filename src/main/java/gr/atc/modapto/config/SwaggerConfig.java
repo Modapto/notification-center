@@ -23,7 +23,7 @@ public class SwaggerConfig {
     public OpenAPI openAPIDocumentation() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Notifacation Center API")
+                        .title("Notification Center API")
                         .version(appVersion)
                         .description("API documentation for Notification Center Service of MODAPTO"))
                 .openapi("3.0.3")

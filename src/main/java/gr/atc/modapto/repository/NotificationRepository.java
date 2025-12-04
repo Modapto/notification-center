@@ -11,4 +11,9 @@ public interface NotificationRepository extends ElasticsearchRepository<Notifica
     Page<Notification> findByUserId(String userIds, Pageable pageable);
 
     Page<Notification> findByUserIdAndNotificationStatus(String userId, String notificationStatus, Pageable pageable);
+
+    Page<Notification> findByNotificationType(String notificationType, Pageable pageable);
+
+    Page<Notification> findByNotificationTypeAndUserId(String notificationType, String userId, Pageable pageable);
+
 }

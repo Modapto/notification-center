@@ -1,53 +1,53 @@
 package gr.atc.modapto.service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import gr.atc.modapto.enums.MessagePriority;
+import gr.atc.modapto.exception.CustomExceptions;
 import org.modelmapper.MappingException;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import gr.atc.modapto.dto.AssignmentCommentDto;
 import gr.atc.modapto.dto.AssignmentDto;
-import gr.atc.modapto.dto.NotificationDto;
 import gr.atc.modapto.enums.AssignmentStatus;
 import gr.atc.modapto.enums.AssignmentType;
-import gr.atc.modapto.enums.NotificationStatus;
-import gr.atc.modapto.enums.NotificationType;
 import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
 import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.model.Assignment;
+import gr.atc.modapto.model.AssignmentComment;
 import gr.atc.modapto.repository.AssignmentRepository;
+import gr.atc.modapto.service.interfaces.IAssignmentService;
+import gr.atc.modapto.service.interfaces.INotificationService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @AllArgsConstructor
 @Slf4j
-public class AssignmentService implements IAssignmentService{
+public class AssignmentService implements IAssignmentService {
 
     private final INotificationService notificationService;
 
-    private final WebSocketService webSocketService;
+    private final ModaptoModuleService modaptoModuleService;
 
     private final AssignmentRepository assignmentRepository;
-
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private final ModelMapper modelMapper;
 
     private static final String ASSIGNMENTS_MAPPING_ERROR = "Error mapping Assignments to Dto - Error: ";
 
     private static final String ASSIGNMENT_MAPPING_ERROR = "Error mapping Assignment to Dto - Error: ";
+
+    private static final String USER_NOT_INVOLVED_IN_ASSIGNMENT_ERROR = "User not involved in assignment";
 
     /**
      * Retrieve all Assignments
@@ -76,7 +76,7 @@ public class AssignmentService implements IAssignmentService{
     @Override
     public Page<AssignmentDto> retrieveAssignmentsPerUserId(String userId, String assignmentType, Pageable pageable) {
         try{
-            // Retrieve results according to the assignment type (RECEIVED, REQUESTED or null)
+            // Retrieve results according to the assignment type (Received, Requested or null)
             if (assignmentType == null)
                 // Null assignmentType
                 return assignmentRepository.findBySourceUserIdOrTargetUserId(userId, userId, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
@@ -104,7 +104,7 @@ public class AssignmentService implements IAssignmentService{
     @Override
     public Page<AssignmentDto> retrieveAssignmentsPerUserIdAndStatus(String userId, String assignmentType, String status, Pageable pageable) {
         try{
-            // Retrieve results according to the assignment type (RECEIVED, REQUESTED or null)
+            // Retrieve results according to the assignment type (Received, Requested or null)
             if (assignmentType == null)
                 // Null assignmentType
                 return assignmentRepository.findByStatusAndSourceUserIdOrTargetUserId(status, userId, userId, pageable).map(assignment -> modelMapper.map(assignment, AssignmentDto.class));
@@ -132,27 +132,102 @@ public class AssignmentService implements IAssignmentService{
             Optional<Assignment> existingAssignment = assignmentRepository.findById(assignmentId);
             if (existingAssignment.isEmpty())
                 throw new DataNotFoundException("Assignment with id: " + assignmentId + " not found in DB");
+
+            // Sort Comments by Datetime
+            List<AssignmentComment> sortedComments = new ArrayList<>(existingAssignment.get().getComments());
+            sortedComments.sort(Comparator.comparing(AssignmentComment::getDatetime).reversed());
+            existingAssignment.get().setComments(sortedComments);
+
             return modelMapper.map(existingAssignment.get(), AssignmentDto.class);
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
         }
     }
 
+    /**
+     * Update an Assignment in DB and generate a Notification (if applicable)
+     *
+     * @param assignmentDto : Assignment information to be updated\
+     * @param userId : UserID made the request
+     */
     @Override
-    public void updateAssignment(String assignmentId, AssignmentDto assignmentDto) {
+    public void updateAssignment(AssignmentDto assignmentDto, String userId) {
         try{
+            // Generate System Comments and Update Description
+            AssignmentDto updatedAssignment = generateSystemCommentsAndUpdateDescription(assignmentDto);
+
             // Try to locate if assignment exists
-            Optional<Assignment> existingAssignment = assignmentRepository.findById(assignmentId);
+            Optional<Assignment> existingAssignment = assignmentRepository.findById(updatedAssignment.getId());
             if (existingAssignment.isEmpty())
-                throw new DataNotFoundException("Assignment with id: " + assignmentId + " not found in DB");
+                throw new DataNotFoundException("Assignment with id: " + updatedAssignment.getId() + " not found in DB");
+
+            // Validate the user is involved in the Assignment
+            if (userIsNotInvolvedInAssignment(existingAssignment.get(), userId))
+                throw new CustomExceptions.UnauthorizedAssignmentUpdateException(USER_NOT_INVOLVED_IN_ASSIGNMENT_ERROR);
 
             // Update assignment and save it to repository
-            Assignment newAssignment = Assignment.updateExistingAssignment(existingAssignment.get(), assignmentDto);
+            Assignment newAssignment = Assignment.updateExistingAssignment(existingAssignment.get(), updatedAssignment);
             assignmentRepository.save(newAssignment);
+
+            // If the Target User has updated the assignment then send the notification to the Source User (mark him as Target)
+            if (newAssignment.getTargetUserId().equals(userId)){
+                newAssignment.setTargetUserId(newAssignment.getSourceUserId());
+
+                if (newAssignment.getSourceUser() != null)
+                    newAssignment.setTargetUser(newAssignment.getSourceUser());
+                else
+                    newAssignment.setTargetUser(newAssignment.getSourceUserId());
+            }
+
+            // Create Notification and Notify relevant user asynchronously
+            generateNotificationFromAssignment(modelMapper.map(newAssignment, AssignmentDto.class));
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
         }
+    }
 
+    /**
+     * Generate system comments for assignment status and priority changes
+     *
+     * @param assignmentDto: DTO of assignment
+     * @return AssignmentDto : Updated assignment with system comments
+     */
+    private AssignmentDto generateSystemCommentsAndUpdateDescription(AssignmentDto assignmentDto) {
+        List<AssignmentCommentDto> comments = assignmentDto.getComments() != null
+                ? new ArrayList<>(assignmentDto.getComments())
+                : new ArrayList<>();
+        String statusDescription = null;
+
+        // Check whether assignment status has been changed
+        if (assignmentDto.getStatus() != null){
+            // Format Assignment Status - Uniform Case
+            assignmentDto.setStatus(AssignmentStatus.fromString(assignmentDto.getStatus()).toString());
+            statusDescription = "Task status changed to '" + assignmentDto.getStatus() + "'";
+            AssignmentCommentDto statusComment = AssignmentCommentDto.builder()
+                    .comment("Task status updated to '" + assignmentDto.getStatus() + "'")
+                    .build();
+            comments.add(statusComment);
+        }
+
+        // Check whether assignment priority has been changed
+        if (assignmentDto.getPriority() != null) {
+            // Format Assignment Priority - Uniform Case
+            assignmentDto.setPriority(MessagePriority.valueOf(assignmentDto.getPriority().toUpperCase()).toString());
+            if (statusDescription == null)
+                statusDescription = "Task priority change to" + "'" + assignmentDto.getPriority() + "'";
+            else
+                statusDescription += " and priority changed to '" + assignmentDto.getPriority() + "'";
+
+            AssignmentCommentDto priorityComment = AssignmentCommentDto.builder()
+                    .comment("Task priority updated to '" + assignmentDto.getPriority() + "'")
+                    .build();
+            comments.add(priorityComment);
+        }
+
+        // Update description and comments
+        assignmentDto.setDescription(statusDescription);
+        assignmentDto.setComments(comments);
+        return assignmentDto;
     }
 
     /**
@@ -160,30 +235,45 @@ public class AssignmentService implements IAssignmentService{
      *
      * @param assignmentId : ID of assignment
      * @param assignmentComment : Assignment Comment Dto depending on the user who commented
+     * @param userId : UserID made the request
      */
     @Override
-    public void updateAssignmentComments(String assignmentId, AssignmentCommentDto assignmentComment) {
+    public void updateAssignmentComments(String assignmentId, AssignmentCommentDto assignmentComment, String userId) {
         try{
             // Try to locate if assignment exists
             Optional<Assignment> existingAssignment = assignmentRepository.findById(assignmentId);
             if (existingAssignment.isEmpty())
                 throw new DataNotFoundException("Assignment with id: " + assignmentId + " not found in DB");
 
+            // Validate the user is involved in the Assignment
+            if (userIsNotInvolvedInAssignment(existingAssignment.get(), userId))
+                throw new CustomExceptions.UnauthorizedAssignmentUpdateException(USER_NOT_INVOLVED_IN_ASSIGNMENT_ERROR);
+
             // Update assignment comments
             Assignment updatedAssignment = existingAssignment.get();
 
-            // Check if Source or Target user commented
-            LocalDateTime timeOfLastUpdate = LocalDateTime.now();
-            if (assignmentComment.getSourceUserComment() != null)
-                updatedAssignment.getSourceUserComments().put(timeOfLastUpdate, assignmentComment.getSourceUserComment());
-            else
-                updatedAssignment.getTargetUserComments().put(timeOfLastUpdate, assignmentComment.getTargetUserComment());
-
-            updatedAssignment.setTimestampUpdated(timeOfLastUpdate);
+            updatedAssignment.getComments().add(AssignmentComment.convertToAssignmentComment(assignmentComment));
+            updatedAssignment.setTimestampUpdated(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
             assignmentRepository.save(updatedAssignment);
+
+            // If the Target User has updated the assignment then send the notification to the Source User (mark him as Target)
+            if (updatedAssignment.getTargetUserId().equals(userId)){
+                updatedAssignment.setTargetUserId(updatedAssignment.getSourceUserId());
+                updatedAssignment.setTargetUser(updatedAssignment.getSourceUser());
+            }
+
+            // Create Notification and Notify relevant user asynchronously
+            generateNotificationFromAssignment(modelMapper.map(updatedAssignment, AssignmentDto.class));
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
         }
+    }
+
+    /*
+     * Helper method to ensure if a user requesting an assignment update is involved in the assignment
+     */
+    private boolean userIsNotInvolvedInAssignment(Assignment assignment, String userId) {
+        return !assignment.getSourceUserId().equals(userId) && !assignment.getTargetUserId().equals(userId);
     }
 
     /**
@@ -195,57 +285,49 @@ public class AssignmentService implements IAssignmentService{
     @Override
     public String storeAssignment(AssignmentDto assignmentDto) {
         try {
-            // Create Assignment and set the initial fields
-            Assignment assignment = modelMapper.map(assignmentDto, Assignment.class);
-            assignment.setSourceUserComments(new HashMap<>());
-            assignment.setTargetUserComments(new HashMap<>());
-            assignment.setStatus(AssignmentStatus.OPEN);
-            assignment.setTimestamp(LocalDateTime.now());
-            assignment.setTimestampUpdated(LocalDateTime.now());
-            return assignmentRepository.save(assignment).getId();
+            // Set the initial fields
+            assignmentDto.setStatus(AssignmentStatus.OPEN.toString());
+            assignmentDto.setTimestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
+            assignmentDto.setTimestampUpdated(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC));
+            // Format Assignment Priority - Uniform Case
+            if (assignmentDto.getPriority() != null)
+                assignmentDto.setPriority(MessagePriority.valueOf(assignmentDto.getPriority().toUpperCase()).toString());
+            else
+                assignmentDto.setPriority(MessagePriority.LOW.toString());
+
+            if(assignmentDto.getModuleName() == null)
+                assignmentDto.setModuleName(modaptoModuleService.retrieveModaptoModuleName(assignmentDto.getModule()));
+
+            String assignmentId = assignmentRepository.save(modelMapper.map(assignmentDto, Assignment.class)).getId();
+            if (assignmentId != null) {
+                // Create Notification and Notify relevant user asynchronously
+                assignmentDto.setId(assignmentId);
+                assignmentDto.setStatus(AssignmentStatus.OPEN.toString());
+                generateNotificationFromAssignment(assignmentDto);
+            }
+
+            return assignmentId;
         } catch (MappingException e) {
             throw new ModelMappingException(ASSIGNMENT_MAPPING_ERROR + e.getMessage());
         }
     }
 
     /**
-     * Create async a notification connected to an assignment and notify user through WebSockets
+     * Helper method to async create a notification from a created or updated assignment
      *
-     * @param assignment: Assignment DTO
+     * @param assignmentDto : Assignment
      */
-    @Async("asyncPoolTaskExecutor")
-    @Override
-    public CompletableFuture<Void> createNotificationAndNotifyUser(AssignmentDto assignment) {
-        return CompletableFuture.runAsync(() -> {
-            try {
-                // Create the notification
-                NotificationDto assignmentNotification = NotificationDto.builder()
-                        .notificationType(NotificationType.ASSIGNMENT)
-                        .notificationStatus(NotificationStatus.NOT_VIEWED)
-                        .productionModule(assignment.getProductionModule())
-                        .userId(assignment.getTargetUserId())
-                        .smartService(null)
-                        .relatedAssignment(assignment.getId())
-                        .relatedEvent(null)
-                        .timestamp(LocalDateTime.now())
-                        .priority(assignment.getPriority())
-                        .description(assignment.getDescription())
-                        .build();
+    private void generateNotificationFromAssignment(AssignmentDto assignmentDto) {
+        // Create Notification and Notify relevant user asynchronously
+        CompletableFuture<Void> notificationCreationAsync = notificationService.createNotificationAndNotifyUser(assignmentDto);
 
-                // Store Notification
-                String notificationId = notificationService.storeNotification(assignmentNotification);
-                if (notificationId == null){
-                    log.error("Notification could not be stored in DB");
-                    return;
-                }
-
-                assignmentNotification.setId(notificationId);
-                // Send notification through WebSocket
-                webSocketService.notifyUserWebSocket(assignmentNotification.getUserId(), objectMapper.writeValueAsString(assignmentNotification));
-            } catch (JsonProcessingException e){
-                log.error("Error processing Notification Dto to JSON - Error: {}", e.getMessage());
-            }
-        });
+        // Log the notification creation process
+        CompletableFuture.allOf(notificationCreationAsync)
+                .thenRun(() -> log.debug("Notification creation process completed"))
+                .exceptionally(ex -> {
+                    log.error("Notification creation process failed", ex);
+                    return null;
+                });
     }
 
     /**

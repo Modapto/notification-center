@@ -1,6 +1,7 @@
 package gr.atc.modapto.service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,15 +30,16 @@ import org.springframework.data.domain.Pageable;
 import gr.atc.modapto.dto.EventDto;
 import gr.atc.modapto.dto.EventMappingsDto;
 import gr.atc.modapto.enums.MessagePriority;
-import gr.atc.modapto.enums.UserRole;
 import gr.atc.modapto.exception.CustomExceptions.DataNotFoundException;
 import gr.atc.modapto.exception.CustomExceptions.ModelMappingException;
 import gr.atc.modapto.model.Event;
 import gr.atc.modapto.model.EventMappings;
 import gr.atc.modapto.repository.EventMappingsRepository;
 import gr.atc.modapto.repository.EventRepository;
+import org.springframework.test.context.ActiveProfiles;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles(profiles = "test")
 class EventServiceTests {
 
     @Mock
@@ -63,37 +65,36 @@ class EventServiceTests {
                 .id("1")
                 .eventType("Test")
                 .smartService("Test Smart Service")
-                .productionModule("Test Production Module")
+                .module("Test Production Module")
+                .moduleName("Test Production Module Name")
                 .eventType(null)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC))
                 .description(null)
-                .priority(MessagePriority.HIGH)
+                .priority(MessagePriority.HIGH.toString())
                 .build();
         
         testEvent = new Event();
         testEvent.setId("1");
         testEvent.setEventType("Test");
         testEvent.setSmartService("Test Smart Service");
-        testEvent.setProductionModule("Test Production Module");
+        testEvent.setModule("Test Production Module");
         testEvent.setEventType(null);
-        testEvent.setTimestamp(LocalDateTime.now());
+        testEvent.setTimestamp(LocalDateTime.now().atOffset(ZoneOffset.UTC));
         testEvent.setDescription(null);
 
 
         testEventMappingDto = EventMappingsDto.builder()
                 .id("1")
-                .smartService("Test SSI")
-                .productionModule("Test Production Module")
-                .eventType("Test Event")
-                .userRoles(List.of(UserRole.OPERATOR))
+                .description(null)
+                .topic("Test Topic")
+                .userRoles(List.of("OPERATOR"))
                 .build();
         
         testEventMapping = EventMappings.builder()
                 .id("1")
-                .smartService("Test SSI")
-                .productionModule("Test Production Module")
-                .eventType("Test Event")
-                .userRoles(List.of(UserRole.OPERATOR))
+                .description(null)
+                .topic("Test Topic")
+                .userRoles(List.of("OPERATOR"))
                 .build();
 
         // Clear mock interactions
@@ -102,7 +103,7 @@ class EventServiceTests {
 
     @DisplayName("Store Incoming Event: Success")
     @Test
-    void givenValidtestEventDto_whenStoreIncomingEvent_thenReturnEventId() {
+    void givenValidEventDto_whenStoreIncomingEvent_thenReturnEventId() {
         // Given
         when(modelMapper.map(testEventDto, Event.class)).thenReturn(testEvent);
         when(eventRepository.save(testEvent)).thenReturn(testEvent);
@@ -116,7 +117,7 @@ class EventServiceTests {
 
     @DisplayName("Store Incoming Event: Mapping Exception")
     @Test
-    void givenInvalidtestEventDto_whenStoreIncomingEvent_thenThrowModelMappingException() {
+    void givenInvalidEventDto_whenStoreIncomingEvent_thenThrowModelMappingException() {
         // Given
         when(modelMapper.map(testEventDto, Event.class)).thenThrow(ModelMappingException.class);
 
@@ -233,27 +234,27 @@ class EventServiceTests {
     @Test
     void givenValidEventDetails_whenRetrieveUserRolesPerEvent_thenReturnUserRoleList() {
         // Given
-        when(eventMappingsRepository.findByEventTypeAndProductionModuleAndSmartService(any(), any(), any()))
+        when(eventMappingsRepository.findByTopic(any()))
                 .thenReturn(Optional.of(testEventMapping));
 
         // When
-        List<UserRole> result = eventService.retrieveUserRolesPerEventType("type", "module", "service");
+        List<String> result = eventService.retrieveUserRolesPerTopic("Test Topic");
 
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(UserRole.OPERATOR, result.getFirst());
+        assertEquals("OPERATOR", result.getFirst());
     }
 
     @DisplayName("Retrieve User Roles per Event: No Mappings Found")
     @Test
     void givenInvalidEventDetails_whenRetrieveUserRolesPerEvent_thenReturnEmptyList() {
         // Given
-        when(eventMappingsRepository.findByEventTypeAndProductionModuleAndSmartService(any(), any(), any()))
+        when(eventMappingsRepository.findByTopic(any()))
                 .thenReturn(Optional.empty());
 
         // When
-        List<UserRole> result = eventService.retrieveUserRolesPerEventType("type", "module", "service");
+        List<String> result = eventService.retrieveUserRolesPerTopic("Mock Topic");
 
         // Then
         assertTrue(result.isEmpty());
@@ -287,5 +288,45 @@ class EventServiceTests {
 
         // Then
         assertEquals("Event Mapping with id: invalid not found in DB", exception.getMessage());
+    }
+
+    @DisplayName("Update Event Mapping: Success")
+    @Test
+    void givenExistingEventMappingAndNewData_whenUpdateEventMapping_thenUpdateEventMapping() {
+        // Given
+        EventMappings mapping = new EventMappings();
+        mapping.setId("1");
+
+        EventMappingsDto newMapping = new EventMappingsDto();
+        newMapping.setId("1");
+        newMapping.setTopic("Test Topic");
+        newMapping.setUserRoles(List.of("ALL"));
+
+        // When
+        when(eventMappingsRepository.findById("1")).thenReturn(Optional.of(mapping));
+
+        eventService.updateEventMappingById(newMapping);
+
+        // Then
+        verify(eventMappingsRepository, times(1)).save(any(EventMappings.class));
+    }
+
+    @DisplayName("Update Event Mapping: Not Found")
+    @Test
+    void givenNonExistingEventMapping_whenUpdateEventMapping_thenThrowException() {
+        EventMappingsDto newMapping = new EventMappingsDto();
+        newMapping.setId("InvalidID");
+        newMapping.setTopic("Test Topic");
+        newMapping.setUserRoles(List.of("ALL"));
+
+        // When
+        when(eventMappingsRepository.findById(anyString())).thenReturn(Optional.empty());
+
+        DataNotFoundException exception = assertThrows(DataNotFoundException.class, () -> {
+            eventService.updateEventMappingById(newMapping);
+        });
+
+        // Then
+        assertEquals("Event Mapping with id: InvalidID not found in DB", exception.getMessage());
     }
 }

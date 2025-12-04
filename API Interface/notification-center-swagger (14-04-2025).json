@@ -2,20 +2,249 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Notifacation Center API",
-    "description": "API documentation for Notifacation Center service",
-    "version": "0.5"
+    "description": "API documentation for Notification Center Service of MODAPTO",
+    "version": "0.6-SNAPSHOT"
   },
   "servers": [
     {
-      "url": "http://services.modapto.atc.gr",
-      "description": "Generated server url"
+      "url": "http://localhost:8091"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Assignment Controller",
+      "description": "Manage assignments of users"
+    },
+    {
+      "name": "Event Controller",
+      "description": "Manage events and event mappings for MODAPTO system"
+    },
+    {
+      "name": "Notification Controller",
+      "description": "Manage notifications for MODAPTO system"
     }
   ],
   "paths": {
+    "/api/notifications/{notificationId}/notificationStatus": {
+      "put": {
+        "tags": [
+          "Notification Controller"
+        ],
+        "summary": "Update notification status command of a specific Notification (From Unread to Read)",
+        "operationId": "updateNotificationStatus",
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification status updated successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication process failed!",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid authorization parameters. Check JWT or CSRF Token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification with id [ID] not found in DB",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
+    "/api/events/mappings/{mappingId}": {
+      "put": {
+        "tags": [
+          "Event Controller"
+        ],
+        "summary": "Update an Event Mapping",
+        "operationId": "updateEventMappingById",
+        "parameters": [
+          {
+            "name": "mappingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventMappingsDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Event mapping updated successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication process failed!",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid authorization parameters. Check JWT or CSRF Token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Event mapping with id [ID] not found in DB",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Event Controller"
+        ],
+        "summary": "Delete an assignment by ID",
+        "operationId": "deleteEventMappingById",
+        "parameters": [
+          {
+            "name": "mappingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event mapping deleted successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication process failed!",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid authorization parameters. Check JWT or CSRF Token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Event mapping with id [ID] not found in DB",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseAppResponseString"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ]
+      }
+    },
     "/api/assignments/{assignmentId}": {
       "get": {
         "tags": [
-          "assignment-controller"
+          "Assignment Controller"
         ],
         "summary": "Retrieve an Assignment given its ID",
         "operationId": "getAssignmentById",
@@ -40,22 +269,12 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponseAssignmentDto"
                 }
               }
             }
@@ -65,27 +284,17 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
+                  "$ref": "#/components/schemas/BaseAppResponseAssignmentDto"
                 }
               }
             }
           },
-          "417": {
+          "404": {
             "description": "Assignment with id [ID] not found in DB",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponseAssignmentDto"
                 }
               }
             }
@@ -99,7 +308,7 @@
       },
       "put": {
         "tags": [
-          "assignment-controller"
+          "Assignment Controller"
         ],
         "summary": "Update an assignment",
         "operationId": "updateAssignment",
@@ -134,16 +343,6 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
@@ -156,16 +355,6 @@
           },
           "403": {
             "description": "Invalid authorization parameters. Check JWT or CSRF Token",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
             "content": {
               "*/*": {
                 "schema": {
@@ -193,10 +382,10 @@
       },
       "delete": {
         "tags": [
-          "assignment-controller"
+          "Assignment Controller"
         ],
         "summary": "Delete an assignment by ID",
-        "operationId": "deleteAssignmentById_1",
+        "operationId": "deleteAssignmentById",
         "parameters": [
           {
             "name": "assignmentId",
@@ -218,16 +407,6 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
@@ -243,23 +422,13 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Assignment with id [ID] not found in DB",
-            "content": {
-              "*/*": {
-                "schema": {
                   "$ref": "#/components/schemas/BaseAppResponseString"
                 }
               }
             }
           },
-          "500": {
-            "description": "Internal Server Error",
+          "404": {
+            "description": "Assignment with id [ID] not found in DB",
             "content": {
               "*/*": {
                 "schema": {
@@ -279,7 +448,7 @@
     "/api/assignments/{assignmentId}/comments": {
       "put": {
         "tags": [
-          "assignment-controller"
+          "Assignment Controller"
         ],
         "summary": "Add a comment to an assignment depending on the user (Source or Target)",
         "operationId": "updateAssignmentComments",
@@ -314,16 +483,6 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
@@ -336,16 +495,6 @@
           },
           "403": {
             "description": "Invalid authorization parameters. Check JWT or CSRF Token",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
             "content": {
               "*/*": {
                 "schema": {
@@ -375,7 +524,7 @@
     "/api/events/mappings/create": {
       "post": {
         "tags": [
-          "event-controller"
+          "Event Controller"
         ],
         "summary": "Create a new event Mapping",
         "operationId": "storeNewEventMapping",
@@ -400,16 +549,6 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
@@ -422,16 +561,6 @@
           },
           "403": {
             "description": "Invalid authorization parameters. Check JWT or CSRF Token",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
             "content": {
               "*/*": {
                 "schema": {
@@ -461,7 +590,7 @@
     "/api/assignments/create": {
       "post": {
         "tags": [
-          "assignment-controller"
+          "Assignment Controller"
         ],
         "summary": "Create a new assignment",
         "operationId": "createAssignment",
@@ -486,16 +615,6 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Invalid JWT token inserted",
             "content": {
@@ -508,16 +627,6 @@
           },
           "403": {
             "description": "Invalid authorization parameters. Check JWT or CSRF Token",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
             "content": {
               "*/*": {
                 "schema": {
@@ -547,9 +656,9 @@
     "/api/notifications": {
       "get": {
         "tags": [
-          "notification-controller"
+          "Notification Controller"
         ],
-        "summary": "Retrieve all Notifications",
+        "summary": "Retrieve all Notifications for Super-Admins",
         "operationId": "getAllNotifications",
         "parameters": [
           {
@@ -595,19 +704,9 @@
           "200": {
             "description": "Notifications retrieved successfully!",
             "content": {
-              "*/*": {
+              "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
+                  "$ref": "#/components/schemas/BaseAppResponse"
                 }
               }
             }
@@ -617,17 +716,17 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
                 }
               }
             }
           },
           "403": {
-            "description": "Invalid authorization parameters. Check JWT or CSRF Token",
+            "description": "Invalid authorization parameters. You don't have the rights to access the resource or check the JWT and CSRF Tokens",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
                 }
               }
             }
@@ -638,26 +737,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
                 }
               }
             }
@@ -673,9 +752,9 @@
     "/api/notifications/{notificationId}": {
       "get": {
         "tags": [
-          "notification-controller"
+          "Notification Controller"
         ],
-        "summary": "Retrieve Notification By Id",
+        "summary": "Retrieve Notification By ID",
         "operationId": "getNotificationById",
         "parameters": [
           {
@@ -698,22 +777,12 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponseNotificationDto"
                 }
               }
             }
@@ -723,27 +792,17 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
+                  "$ref": "#/components/schemas/BaseAppResponseNotificationDto"
                 }
               }
             }
           },
-          "417": {
+          "404": {
             "description": "Notification with id [ID] not found in DB",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponseNotificationDto"
                 }
               }
             }
@@ -759,7 +818,7 @@
     "/api/notifications/user/{userId}": {
       "get": {
         "tags": [
-          "notification-controller"
+          "Notification Controller"
         ],
         "summary": "Retrieve all notification per UserID",
         "operationId": "getAllNotificationPerUser",
@@ -822,22 +881,12 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
                 }
               }
             }
@@ -847,27 +896,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoNotificationDto"
                 }
               }
             }
@@ -883,7 +912,7 @@
     "/api/notifications/user/{userId}/unread": {
       "get": {
         "tags": [
-          "notification-controller"
+          "Notification Controller"
         ],
         "summary": "Retrieve all unread notifications for a specific user",
         "operationId": "getAllUnreadNotificationPerUser",
@@ -908,22 +937,12 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponseListNotificationDto"
                 }
               }
             }
@@ -933,27 +952,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponseListNotificationDto"
                 }
               }
             }
@@ -969,7 +968,7 @@
     "/api/events": {
       "get": {
         "tags": [
-          "event-controller"
+          "Event Controller"
         ],
         "summary": "Retrieve all events",
         "operationId": "getAllEvents",
@@ -1024,22 +1023,12 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoEventDto"
                 }
               }
             }
@@ -1049,7 +1038,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoEventDto"
                 }
               }
             }
@@ -1060,26 +1049,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoEventDto"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
                 }
               }
             }
@@ -1095,7 +1064,7 @@
     "/api/events/mappings": {
       "get": {
         "tags": [
-          "event-controller"
+          "Event Controller"
         ],
         "summary": "Get all Event Mappings",
         "operationId": "getAllEventMappings",
@@ -1110,22 +1079,12 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication process failed!",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponseListEventMappingsDto"
                 }
               }
             }
@@ -1135,17 +1094,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponseListEventMappingsDto"
                 }
               }
             }
@@ -1155,7 +1104,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponseListEventMappingsDto"
                 }
               }
             }
@@ -1171,9 +1120,9 @@
     "/api/assignments": {
       "get": {
         "tags": [
-          "assignment-controller"
+          "Assignment Controller"
         ],
-        "summary": "Retrieve all Assignments",
+        "summary": "Retrieve all Assignments for Super-Admins usage",
         "operationId": "getAllAssignments",
         "parameters": [
           {
@@ -1231,7 +1180,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
                 }
               }
             }
@@ -1241,37 +1190,17 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
                 }
               }
             }
           },
           "403": {
-            "description": "Invalid authorization parameters. Check JWT or CSRF Token",
+            "description": "Invalid authorization parameters. You don't have the rights to access the resource or check the JWT and CSRF Tokens",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
                 }
               }
             }
@@ -1287,7 +1216,7 @@
     "/api/assignments/user/{userId}": {
       "get": {
         "tags": [
-          "assignment-controller"
+          "Assignment Controller"
         ],
         "summary": "Retrieve all Assignment per UserID and Status (optional) and Assignment Type (Source or Received) (optional)",
         "operationId": "getAllAssignmentPerUser",
@@ -1371,7 +1300,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
                 }
               }
             }
@@ -1381,7 +1310,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
                 }
               }
             }
@@ -1391,113 +1320,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Expectation Failed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerToken": []
-          }
-        ]
-      }
-    },
-    "/api/events/mappings/{mappingId}": {
-      "delete": {
-        "tags": [
-          "event-controller"
-        ],
-        "summary": "Delete an assignment by ID",
-        "operationId": "deleteAssignmentById",
-        "parameters": [
-          {
-            "name": "mappingId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Event mapping deleted successfully!",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication process failed!",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Invalid authorization parameters. Check JWT or CSRF Token",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseMapStringString"
-                }
-              }
-            }
-          },
-          "417": {
-            "description": "Event mapping with id [ID] not found in DB",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/BaseAppResponseString"
+                  "$ref": "#/components/schemas/BaseAppResponsePaginatedResultsDtoAssignmentDto"
                 }
               }
             }
@@ -1513,30 +1336,6 @@
   },
   "components": {
     "schemas": {
-      "BaseAppResponseMapStringString": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "errors": {
-            "type": "object"
-          },
-          "message": {
-            "type": "string"
-          },
-          "success": {
-            "type": "boolean"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "BaseAppResponseString": {
         "type": "object",
         "properties": {
@@ -1558,7 +1357,58 @@
           }
         }
       },
+      "EventMappingsDto": {
+        "title": "Event Mapping",
+        "required": [
+          "topic",
+          "userRoles"
+        ],
+        "type": "object",
+        "properties": {
+          "eventMappingId": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "userRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Event Mapping Object Representation"
+      },
+      "AssignmentCommentDto": {
+        "title": "Assignment Comment",
+        "required": [
+          "comment",
+          "originName"
+        ],
+        "type": "object",
+        "properties": {
+          "originName": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "comment": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          }
+        },
+        "description": "Assignment Comment Object Representation"
+      },
       "AssignmentDto": {
+        "title": "Assignment",
         "type": "object",
         "properties": {
           "assignmentId": {
@@ -1571,24 +1421,12 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
-            "enum": [
-              "Open",
-              "Accepted",
-              "In Progress",
-              "Completed"
-            ]
+            "type": "string"
           },
-          "sourceUserComments": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "targetUserComments": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignmentCommentDto"
             }
           },
           "description": {
@@ -1606,66 +1444,29 @@
             "format": "date-time"
           },
           "priority": {
+            "type": "string"
+          }
+        },
+        "description": "Assignment Object Representation"
+      },
+      "BaseAppResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "errors": {
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "timestamp": {
             "type": "string",
-            "enum": [
-              "LOW",
-              "MEDIUM",
-              "HIGH"
-            ]
-          }
-        }
-      },
-      "AssignmentCommentDto": {
-        "type": "object",
-        "properties": {
-          "sourceUserComment": {
-            "type": "string"
-          },
-          "targetUserComment": {
-            "type": "string"
-          }
-        }
-      },
-      "EventMappingsDto": {
-        "type": "object",
-        "properties": {
-          "eventMappingsId": {
-            "type": "string"
-          },
-          "productionModule": {
-            "type": "string"
-          },
-          "smartService": {
-            "type": "string"
-          },
-          "eventType": {
-            "type": "string"
-          },
-          "userRoles": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "ROBOT_PROGRAMMER",
-                "VIRTUAL_COMMISSIONING_ENGINEER",
-                "ROBOT_SIMULATION_USER",
-                "PROCESS_ENGINEER",
-                "PLANT_OPERATOR",
-                "TECHNICIAN",
-                "PRODUCTION_SCHEDULING_TEAM_MEMBER",
-                "MAINTENANCE_ENGINEER",
-                "INNOVATION_ENGINEER",
-                "OPERATOR",
-                "SHOP_FLOOR_MANAGER",
-                "PLANT_MANAGER",
-                "PRODUCTION_MANAGER",
-                "LOGISTICS_MANAGER",
-                "PRODUCTION_SCHEDULER",
-                "DESIGN_EXPERT",
-                "AUTOMATION_MANAGER",
-                "GLOBAL"
-              ]
-            }
+            "format": "date-time"
           }
         }
       },
@@ -1691,6 +1492,7 @@
         }
       },
       "NotificationDto": {
+        "title": "Notification",
         "type": "object",
         "properties": {
           "notificationId": {
@@ -1700,11 +1502,7 @@
             "type": "string"
           },
           "notificationType": {
-            "type": "string",
-            "enum": [
-              "Event",
-              "Assignment"
-            ]
+            "type": "string"
           },
           "relatedEvent": {
             "type": "string"
@@ -1713,11 +1511,10 @@
             "type": "string"
           },
           "notificationStatus": {
-            "type": "string",
-            "enum": [
-              "NOT_VIEWED",
-              "VIEWED"
-            ]
+            "type": "string"
+          },
+          "messageStatus": {
+            "type": "string"
           },
           "sourceComponent": {
             "type": "string"
@@ -1736,16 +1533,13 @@
             "format": "date-time"
           },
           "priority": {
-            "type": "string",
-            "enum": [
-              "LOW",
-              "MEDIUM",
-              "HIGH"
-            ]
+            "type": "string"
           }
-        }
+        },
+        "description": "Notification Object Representation"
       },
       "PaginatedResultsDtoNotificationDto": {
+        "title": "Paginated Results",
         "type": "object",
         "properties": {
           "results": {
@@ -1765,7 +1559,8 @@
           "lastPage": {
             "type": "boolean"
           }
-        }
+        },
+        "description": "Paginated Result Data Transfer Object"
       },
       "BaseAppResponseNotificationDto": {
         "type": "object",
@@ -1834,10 +1629,11 @@
         }
       },
       "EventDto": {
+        "title": "Event",
         "required": [
-          "pilot",
           "priority",
-          "productionModule"
+          "productionModule",
+          "topic"
         ],
         "type": "object",
         "properties": {
@@ -1850,20 +1646,12 @@
           "productionModule": {
             "type": "string"
           },
-          "pilot": {
-            "type": "string"
-          },
           "timestamp": {
             "type": "string",
             "format": "date-time"
           },
           "priority": {
-            "type": "string",
-            "enum": [
-              "LOW",
-              "MEDIUM",
-              "HIGH"
-            ]
+            "type": "string"
           },
           "eventType": {
             "type": "string"
@@ -1880,12 +1668,14 @@
           "results": {
             "$ref": "#/components/schemas/JsonNode"
           }
-        }
+        },
+        "description": "Event Object Representation"
       },
       "JsonNode": {
         "type": "object"
       },
       "PaginatedResultsDtoEventDto": {
+        "title": "Paginated Results",
         "type": "object",
         "properties": {
           "results": {
@@ -1905,7 +1695,8 @@
           "lastPage": {
             "type": "boolean"
           }
-        }
+        },
+        "description": "Paginated Result Data Transfer Object"
       },
       "BaseAppResponseListEventMappingsDto": {
         "type": "object",
@@ -1953,6 +1744,7 @@
         }
       },
       "PaginatedResultsDtoAssignmentDto": {
+        "title": "Paginated Results",
         "type": "object",
         "properties": {
           "results": {
@@ -1972,7 +1764,8 @@
           "lastPage": {
             "type": "boolean"
           }
-        }
+        },
+        "description": "Paginated Result Data Transfer Object"
       },
       "BaseAppResponseAssignmentDto": {
         "type": "object",

@@ -4,8 +4,8 @@ package gr.atc.modapto.enums;
  * Enum for Notification Status
  */
 public enum NotificationStatus {
-    NOT_VIEWED("NOT_VIEWED"),
-    VIEWED("VIEWED");
+    UNREAD("Unread"),
+    READ("Read");
 
     private final String status;
 

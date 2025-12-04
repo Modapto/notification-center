@@ -18,12 +18,12 @@ public class WebSocketService {
      * Notify all users through WebSocket
      * 
      * @param message : String message
-     * @param role : User Role so users can connect and receive notifications
+     * @param topicName : Topic Name for specific user roles
      */
-    public void notifyRolesWebSocket(String message, String topicName){
+    public void notifyUsersAndRolesViaWebSocket(String message, String topicName){
         try {
-            String websocketTopic = "/topic/events/" + topicName.toLowerCase();
-            log.info("Notifying websocket topic: {} with message: {}", websocketTopic, message);
+            String websocketTopic = "/topic/notifications/" + topicName;
+            log.debug("Notifying websocket topic: {}", websocketTopic);
             messagingTemplate.convertAndSend(websocketTopic, message);
         } catch (MessagingException e) {
             log.error("Error in sending data via websockets - {}", e.getMessage());
@@ -32,15 +32,16 @@ public class WebSocketService {
 
     /**
      * Notify specific user through WebSocket
+     * Works when the UserID is mapped to a Spring Security Principal
      * 
-     * @param userId : User ID of user that will be connect to specific topics
+     * @param userId : User ID of user that will connect to specific topics
      * @param message : String message
      */
-    public void notifyUserWebSocket(String userId, String message) {
+    public void notifyUserViaWebSocket(String userId, String message) {
         try {
             String websocketTopic = "/user/" + userId + "/queue/notifications";
-            log.info("Notifying user: {} on websocket topic: {} with message: {}", userId, websocketTopic, message);
-            messagingTemplate.convertAndSendToUser(userId, "/queue/events", message);
+            log.debug("Notifying user: {} on websocket topic: {}", userId, websocketTopic);
+            messagingTemplate.convertAndSendToUser(userId, "/queue/notifications", message);
         } catch (MessagingException e) {
             log.error("Error in sending data to user via websockets - {}", e.getMessage());
         }

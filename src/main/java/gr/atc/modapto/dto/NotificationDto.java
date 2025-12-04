@@ -1,24 +1,23 @@
 package gr.atc.modapto.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import gr.atc.modapto.validation.ValidNotificationStatus;
 import gr.atc.modapto.validation.ValidPriority;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-
-import gr.atc.modapto.enums.MessagePriority;
-import gr.atc.modapto.enums.NotificationStatus;
-import gr.atc.modapto.enums.NotificationType;
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = "Notification Object Representation", title = "Notification")
 public class NotificationDto{
 
     @JsonProperty("notificationId")
@@ -27,8 +26,11 @@ public class NotificationDto{
     @JsonProperty("userId")
     private String userId;
 
+    @JsonProperty("user")
+    private String user;
+
     @JsonProperty("notificationType")
-    private NotificationType notificationType;
+    private String notificationType;
 
     @JsonProperty("relatedEvent")
     private String relatedEvent;
@@ -36,8 +38,12 @@ public class NotificationDto{
     @JsonProperty("relatedAssignment")
     private String relatedAssignment;
 
+    @ValidNotificationStatus
     @JsonProperty("notificationStatus")
-    private NotificationStatus notificationStatus;
+    private String notificationStatus;
+
+    @JsonProperty("messageStatus")
+    private String messageStatus;
 
     @JsonProperty("sourceComponent")
     private String sourceComponent;
@@ -45,17 +51,20 @@ public class NotificationDto{
     @JsonProperty("description")
     private String description;
 
-    @JsonProperty("productionModule")
-    private String productionModule;
+    @JsonProperty("module")
+    private String module;
+
+    @JsonProperty("moduleName")
+    private String moduleName;
 
     @JsonProperty("smartService")
     private String smartService;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssZ")
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private OffsetDateTime timestamp;
 
     @ValidPriority
     @JsonProperty("priority")
-    private MessagePriority priority;
+    private String priority;
 }

@@ -1,61 +1,108 @@
 package gr.atc.modapto.controller;
 
-import gr.atc.modapto.dto.NotificationDto;
-import gr.atc.modapto.enums.MessagePriority;
-import gr.atc.modapto.enums.NotificationStatus;
-import gr.atc.modapto.enums.NotificationType;
-import gr.atc.modapto.service.INotificationService;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
+
+import gr.atc.modapto.repository.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("local")
+import gr.atc.modapto.dto.NotificationDto;
+import gr.atc.modapto.enums.MessagePriority;
+import gr.atc.modapto.enums.NotificationStatus;
+import gr.atc.modapto.enums.NotificationType;
+import gr.atc.modapto.exception.CustomExceptions;
+import gr.atc.modapto.service.interfaces.INotificationService;
+
+@WebMvcTest(NotificationController.class)
+@ActiveProfiles("test")
 class NotificationControllerTests {
+
+    @Autowired
+    private WebApplicationContext context;
+
+    @MockitoBean
+    private ElasticsearchOperations elasticsearchOperations;
+
+    @MockitoBean
+    private ElasticsearchTemplate elasticsearchTemplate;
+
+    @MockitoBean
+    private NotificationRepository notificationRepository;
+
+    @MockitoBean
+    private AssignmentRepository assignmentRepository;
+
+    @MockitoBean
+    private EventRepository eventRepository;
+
+    @MockitoBean
+    private EventMappingsRepository eventMappingsRepository;
+
+    @MockitoBean
+    private ModaptoModuleRepository modaptoModuleRepository;
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private INotificationService notificationService;
 
     private static List<NotificationDto> notifications;
     private static NotificationDto testNotification;
     private static Page<NotificationDto> paginatedResults;
 
+    @BeforeEach
+    void setupInit(){
+        mockMvc = MockMvcBuilders
+                .webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
+    }
+
     @BeforeAll
     static void setup(){
         testNotification = NotificationDto.builder()
-                .notificationType(NotificationType.EVENT)
-                .notificationStatus(NotificationStatus.NOT_VIEWED)
+                .notificationType(NotificationType.EVENT.toString())
+                .notificationStatus(NotificationStatus.UNREAD.toString())
                 .sourceComponent("Test Component")
-                .productionModule("Test Production Module")
-                .timestamp(LocalDateTime.now())
-                .priority(MessagePriority.MEDIUM)
+                .module("Test Production Module")
+                .moduleName("Test Module Name")
+                .timestamp(LocalDateTime.now().withNano(0).atOffset(ZoneOffset.UTC))
+                .priority(MessagePriority.MID.toString())
                 .description("Test")
                 .build();
 
@@ -65,6 +112,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get All Notifications: Success")
+    @WithMockUser
     @Test
     void givenValidRequest_whenGetAllNotifications_thenReturnNotificationList() throws Exception {
         // Given
@@ -80,6 +128,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get All Notifications: Empty List")
+    @WithMockUser
     @Test
     void givenNoNotifications_whenGetAllNotifications_thenReturnEmptyList() throws Exception {
         // Given
@@ -95,6 +144,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get All Notifications: Exception Handling")
+    @WithMockUser
     @Test
     void givenException_whenGetAllNotifications_thenReturnServerError() throws Exception {
         // Given
@@ -109,7 +159,187 @@ class NotificationControllerTests {
                 .andExpect(jsonPath("$.message", is("An unexpected error occurred")));
     }
 
+    @DisplayName("Get Notifications by Notification Type : Success")
+    @WithMockUser(roles = "SUPER_ADMIN")
+    @Test
+    void givenValidNotificationType_whenGetAllNotificationsByType_thenReturnPaginatedResult() throws Exception {
+        given(notificationService.retrieveAllNotificationsPerNotificationType(anyString(), any(Pageable.class)))
+                .willReturn(paginatedResults);
+
+        mockMvc.perform(get("/api/notifications/notificationType/Event")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortAttribute", "timestamp")
+                        .param("isAscending", "false")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Notifications retrieved successfully!")));
+    }
+
+
+    @DisplayName("Get Notifications by Notification Type: Empty Page")
+    @WithMockUser(roles = "SUPER_ADMIN")
+    @Test
+    void givenValidNotificationTypeWithNoResults_whenGetAllNotificationsByType_thenReturnEmptyPage() throws Exception {
+        given(notificationService.retrieveAllNotificationsPerNotificationType(anyString(), any(Pageable.class)))
+                .willReturn(Page.empty());
+
+        mockMvc.perform(get("/api/notifications/notificationType/Event")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.results").isEmpty());
+    }
+
+    @DisplayName("Get Notifications by Notification Type: Invalid Pagination Attributes")
+    @WithMockUser(roles = "SUPER_ADMIN")
+    @Test
+    void givenInvalidSortAttribute_whenGetAllNotificationsByType_thenReturnBadRequest() throws Exception {
+        mockMvc.perform(get("/api/notifications/notificationType/Event")
+                        .param("sortAttribute", "invalidField")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Invalid sort attributes")));
+    }
+
+    @DisplayName("Get Notifications by Notification Type: Exception Handling")
+    @WithMockUser(roles = "SUPER_ADMIN")
+    @Test
+    void givenException_whenGetAllNotificationsByType_thenReturnServerError() throws Exception {
+        given(notificationService.retrieveAllNotificationsPerNotificationType(anyString(), any(Pageable.class)))
+                .willThrow(new CustomExceptions.ModelMappingException("Mapping error"));
+
+        mockMvc.perform(get("/api/notifications/notificationType/EVENT")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Internal error in mapping process")));
+    }
+
+    @DisplayName("Get Notifications by Notification Type: Validation Error")
+    @WithMockUser(roles = "SUPER_ADMIN")
+    @Test
+    void givenInvalidNotificationType_whenGetAllNotificationsByType_thenReturnException() throws Exception {
+        mockMvc.perform(get("/api/notifications/notificationType/mockType")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Validation error")));
+    }
+
+    @DisplayName("Get Notifications by User and Type: Success")
+    @WithMockUser
+    @Test
+    void givenValidUserAndNotificationType_whenGetNotifications_thenReturnPaginatedResult() throws Exception {
+        given(notificationService.retrieveAllNotificationsPerNotificationTypeAndUserId(anyString(), anyString(), any(Pageable.class)))
+                .willReturn(paginatedResults);
+
+        mockMvc.perform(get("/api/notifications/user/user123/notificationType/Event")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Notifications retrieved successfully!")));
+    }
+
+    @DisplayName("Get Notifications by User and Type: Empty List")
+    @WithMockUser
+    @Test
+    void givenValidUserAndNotificationTypeWithNoResults_whenGetNotifications_thenReturnEmptyList() throws Exception {
+        given(notificationService.retrieveAllNotificationsPerNotificationTypeAndUserId(anyString(), anyString(), any(Pageable.class)))
+                .willReturn(Page.empty());
+
+        mockMvc.perform(get("/api/notifications/user/user123/notificationType/EVENT")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.results").isEmpty());
+    }
+
+    @DisplayName("Get Notifications by User and Type: Invalid Sort")
+    @WithMockUser
+    @Test
+    void givenInvalidSortAttribute_whenGetUserNotifications_thenReturnBadRequest() throws Exception {
+        mockMvc.perform(get("/api/notifications/user/user123/notificationType/Event")
+                        .param("sortAttribute", "wrongField")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", containsString("Invalid sort attributes")));
+    }
+
+    @DisplayName("Get Notifications by User and Type: Exception Handling")
+    @WithMockUser
+    @Test
+    void givenException_whenGetUserNotifications_thenReturnServerError() throws Exception {
+        given(notificationService.retrieveAllNotificationsPerNotificationTypeAndUserId(anyString(), anyString(), any(Pageable.class)))
+                .willThrow(new CustomExceptions.ModelMappingException("Mapping error"));
+
+        mockMvc.perform(get("/api/notifications/user/user123/notificationType/Event")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Internal error in mapping process")));
+    }
+
+
+    @DisplayName("Get Notification by ID: Success")
+    @WithMockUser
+    @Test
+    void givenNotificationID_whenGetNotificationById_thenReturnNotification() throws Exception {
+        // Given
+        when(notificationService.retrieveNotificationById(anyString())).thenReturn(notifications.getFirst());
+
+        // When
+        mockMvc.perform(get("/api/notifications/notificationId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                // Then
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.module", is("Test Production Module")));
+    }
+
+    @DisplayName("Get Notification by ID: Not Found Exception")
+    @WithMockUser
+    @Test
+    void givenNotificationID_whenGetNotificationById_thenReturnNotFound() throws Exception {
+        // Given
+        doThrow(new CustomExceptions.DataNotFoundException("Requested resource not found in DB"))
+                .when(notificationService).retrieveNotificationById(any());
+
+        // When
+        mockMvc.perform(get("/api/notifications/notificationId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                // Then
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Requested resource not found in DB")));
+    }
+
+    @DisplayName("Get Notification by ID: Mapping Exception")
+    @WithMockUser
+    @Test
+    void givenNotificationID_whenGetNotificationById_thenReturnMappingException() throws Exception {
+        // Given
+        doThrow(new CustomExceptions.ModelMappingException("Model Mapping Exception"))
+                .when(notificationService).retrieveNotificationById(any());
+
+        // When
+        mockMvc.perform(get("/api/notifications/notificationId")
+                        .contentType(MediaType.APPLICATION_JSON))
+                // Then
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Internal error in mapping process")));
+    }
+
     @DisplayName("Get Notifications by User ID: Success")
+    @WithMockUser
     @Test
     void givenValidUserId_whenGetNotificationsByUserId_thenReturnNotifications() throws Exception {
         // Given
@@ -125,6 +355,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get Unread Notifications by User ID: Success")
+    @WithMockUser
     @Test
     void givenValidUserId_whenGetUnreadNotificationsByUserId_thenReturnUnreadNotifications() throws Exception {
         // Given
@@ -137,10 +368,11 @@ class NotificationControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.message", is("Unread notifications retrieved successfully!")))
-                .andExpect(jsonPath("$.data[0].productionModule", is("Test Production Module")));
+                .andExpect(jsonPath("$.data[0].module", is("Test Production Module")));
     }
 
     @DisplayName("Get Notifications by User ID: Exception Handling")
+    @WithMockUser
     @Test
     void givenException_whenGetNotificationsByUserId_thenReturnServerError() throws Exception {
         // Given
@@ -156,6 +388,7 @@ class NotificationControllerTests {
     }
 
     @DisplayName("Get Unread Notifications by User ID: Exception Handling")
+    @WithMockUser
     @Test
     void givenException_whenGetUnreadNotificationsByUserId_thenReturnServerError() throws Exception {
         // Given
@@ -170,4 +403,17 @@ class NotificationControllerTests {
                 .andExpect(jsonPath("$.message", is("An unexpected error occurred")));
     }
 
+    @DisplayName("Update Notification Status to 'Read': Success")
+    @WithMockUser
+    @Test
+    void givenValidNotificationId_whenUpdateNotificationStatus_thenReturnSuccess() throws Exception {
+
+        // When
+        mockMvc.perform(put("/api/notifications/12345/notificationStatus")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON))                // Then
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Notification status updated successfully")));
+    }
 }

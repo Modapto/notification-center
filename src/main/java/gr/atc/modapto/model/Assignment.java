@@ -1,20 +1,19 @@
 package gr.atc.modapto.model;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.time.OffsetDateTime;
+import java.util.List;
 
 import gr.atc.modapto.dto.AssignmentDto;
 import lombok.*;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-import gr.atc.modapto.enums.AssignmentStatus;
-
-@Data
 @EqualsAndHashCode(callSuper = true)
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Document(indexName = "assignments")
@@ -26,20 +25,23 @@ public class Assignment extends Message {
     @Field(type = FieldType.Keyword, name ="sourceUserId")
     private String sourceUserId;
 
+    @Field(type = FieldType.Keyword, name ="sourceUser")
+    private String sourceUser;
+
+    @Field(type = FieldType.Keyword, name ="targetUser")
+    private String targetUser;
+
     @Field(type = FieldType.Keyword, name ="targetUserId")
     private String targetUserId;
 
     @Field(type = FieldType.Keyword, name = "status")
-    private AssignmentStatus status;
+    private String status;
 
-    @Field(type = FieldType.Object, name = "sourceUserComments")
-    private HashMap<LocalDateTime, String> sourceUserComments;
+    @Field(type = FieldType.Nested, name = "comments")
+    private List<AssignmentComment> comments;
 
-    @Field(type = FieldType.Object, name = "targetUserComments")
-    private HashMap<LocalDateTime, String> targetUserComments;
-
-    @Field(type = FieldType.Date, name = "timestampUpdated", format = DateFormat.date_hour_minute_second)
-    private LocalDateTime timestampUpdated;
+    @Field(type = FieldType.Date, name = "timestampUpdated", format = DateFormat.strict_date_optional_time)
+    private OffsetDateTime timestampUpdated;
 
     /**
      * Update specific fields of an existing Assignment
@@ -64,10 +66,17 @@ public class Assignment extends Message {
         if (assignmentDto.getPriority() != null)
             assignment.setPriority(assignmentDto.getPriority());
 
-        if (assignmentDto.getProductionModule() != null)
-            assignment.setProductionModule(assignmentDto.getProductionModule());
+        if (assignmentDto.getModule() != null)
+            assignment.setModule(assignmentDto.getModule());
 
-        assignment.setTimestampUpdated(LocalDateTime.now());
+        if (assignmentDto.getModuleName() != null)
+            assignment.setModuleName(assignmentDto.getModuleName());
+
+        if (assignmentDto.getComments() != null)
+            assignmentDto.getComments().stream()
+                .map(AssignmentComment::convertToAssignmentComment)
+                .forEach(comment -> assignment.getComments().add(comment));
+
         return assignment;
     }
 }
