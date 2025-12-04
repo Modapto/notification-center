@@ -68,6 +68,9 @@ public class KafkaMessageHandler {
 
         // Store incoming Event
         try{
+            if (event.getId() != null){
+                event.setId(null); // Ensure that no ID is set for new incoming events
+            }
             // Store incoming event
             String eventId = eventService.storeIncomingEvent(event);
             if (eventId == null){
