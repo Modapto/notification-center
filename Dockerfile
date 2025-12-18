@@ -25,6 +25,8 @@ ENTRYPOINT ["java", \
             "-XX:+UseContainerSupport", \
             "-XX:MaxRAMPercentage=75.0", \
             "-XX:+UseG1GC", \
+            "-XX:MaxGCPauseMillis=100", \
+            "-XX:+ParallelRefProcEnabled", \
             "-XX:+HeapDumpOnOutOfMemoryError", \
             "-XX:+DisableExplicitGC", \
             "-Djava.security.egd=file:/dev/./urandom", \

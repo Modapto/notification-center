@@ -108,7 +108,14 @@ public class KafkaMessageHandler {
         log.debug("Located name for MODAPTO Module with ID: {} is '{}'", event.getModule(), moduleName);
 
         // Store incoming Event
+<<<<<<< HEAD
+        try{
+            if (event.getId() != null){
+                event.setId(null); // Ensure that no ID is set for new incoming events
+            }
+=======
         try {
+>>>>>>> 0c254e7984ee30b49d072db7341dc739fc06860c
             // Store incoming event
             String eventId = eventService.storeIncomingEvent(event);
             if (eventId == null) {
